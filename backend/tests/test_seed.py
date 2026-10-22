@@ -3,7 +3,7 @@ from sqlalchemy import func, select
 
 from app.db.base import Base
 from app.db.seed import seed
-from app.models import SiteSettings
+from app.models import Service, SiteSettings
 
 
 @pytest.fixture
@@ -30,3 +30,32 @@ async def test_seed_twice_keeps_one_row_and_does_not_overwrite_edits(session):
 
     assert await session.scalar(select(func.count()).select_from(SiteSettings)) == 1
     assert (await session.get(SiteSettings, 1)).address == "Enugu"
+
+
+async def test_seed_creates_the_eight_services_in_order(session):
+    await seed(session)
+    rows = (await session.scalars(select(Service).order_by(Service.display_order))).all()
+    assert [r.slug for r in rows] == [
+        "senator-wear",
+        "kaftans",
+        "suits-and-formal-wear",
+        "shirts",
+        "trousers",
+        "agbada-and-chieftaincy-wears",
+        "womens-senator-wear",
+        "fashion-consultations",
+    ]
+    assert all(r.visible for r in rows)
+
+
+async def test_seed_does_not_overwrite_an_edited_service(session):
+    await seed(session)
+    senator = await session.scalar(select(Service).where(Service.slug == "senator-wear"))
+    senator.description = "Edited by admin"
+    await session.commit()
+
+    await seed(session)
+
+    assert await session.scalar(select(func.count()).select_from(Service)) == 8
+    senator = await session.scalar(select(Service).where(Service.slug == "senator-wear"))
+    assert senator.description == "Edited by admin"
