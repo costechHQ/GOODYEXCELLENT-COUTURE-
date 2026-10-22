@@ -4,7 +4,7 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 
 ## Foundation
 - [ ] `uv` project, FastAPI app (running, /health) ✔; async SQLAlchemy + asyncpg (TS-02) pending
-- [ ] Config from environment variables only (NFR-12)
+- [x] Config from environment variables only (NFR-12)
 - [ ] CORS restricted to the site's domain (TS-01)
 - [ ] Models for the six entities in SRS 6.1
 - [ ] Alembic wired to app settings and model metadata

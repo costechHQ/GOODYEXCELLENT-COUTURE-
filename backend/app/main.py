@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 
-app = FastAPI(title="GOODYEXCELLENT COUTURE API")
+from app.core.config import settings
+
+app = FastAPI(title=settings.app_name)
 
 
 @app.get("/health")
