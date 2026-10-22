@@ -5,7 +5,7 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 ## Foundation
 - [x] `uv` project, FastAPI app, async SQLAlchemy + asyncpg (TS-02), verified on PostgreSQL 17
 - [x] Config from environment variables only (NFR-12)
-- [ ] CORS restricted to the site's domain (TS-01)
+- [x] CORS restricted to the site's domain (TS-01)
 - [ ] Models for the six entities in SRS 6.1 (1 of 6: site_settings)
 - [x] Alembic wired to app settings and model metadata
 - [x] Initial Alembic migration generated and applied to PostgreSQL (site_settings; later tables get their own migrations)

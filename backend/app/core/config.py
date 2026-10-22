@@ -11,5 +11,9 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+asyncpg://goody:goody@localhost:5432/goody"
 
+    # Origins allowed to call the API from a browser (TS-01). In production, set this to the
+    # site's own domain only, as JSON: CORS_ORIGINS=["https://yourdomain.com"]
+    cors_origins: list[str] = ["http://localhost:3000"]
+
 
 settings = Settings()
