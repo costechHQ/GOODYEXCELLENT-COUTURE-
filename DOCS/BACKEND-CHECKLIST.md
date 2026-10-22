@@ -12,7 +12,7 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 - [ ] Seed script: site settings with exact contact details (SRS 2.5) and 8 services (FR-19) done; first Owner admin pending
 
 ## Public API
-- [ ] Services list and detail by slug (FR-19, FR-21, FR-23) — Must
+- [x] Services list and detail by slug (FR-19, FR-21, FR-23) — Must
 - [ ] Gallery list with category filter and featured flag (FR-24, FR-25, FR-09) — Must
 - [ ] Testimonials: approved only (FR-12, FR-49) — Should
 - [x] Site settings read (FR-03, FR-44) — Must
