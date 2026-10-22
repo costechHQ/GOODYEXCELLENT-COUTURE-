@@ -9,5 +9,7 @@ class Settings(BaseSettings):
     app_name: str = "GOODYEXCELLENT COUTURE API"
     environment: str = "development"
 
+    database_url: str = "postgresql+asyncpg://goody:goody@localhost:5432/goody"
+
 
 settings = Settings()

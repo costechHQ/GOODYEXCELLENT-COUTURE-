@@ -3,7 +3,7 @@
 Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source of truth. If this file and the SRS disagree, the SRS wins. Frontend work starts only when every **Must** item below is checked.
 
 ## Foundation
-- [ ] `uv` project, FastAPI app (running, /health) ✔; async SQLAlchemy + asyncpg (TS-02) pending
+- [x] `uv` project, FastAPI app, async SQLAlchemy + asyncpg (TS-02), verified on SQLite only; real PostgreSQL check pending
 - [x] Config from environment variables only (NFR-12)
 - [ ] CORS restricted to the site's domain (TS-01)
 - [ ] Models for the six entities in SRS 6.1
