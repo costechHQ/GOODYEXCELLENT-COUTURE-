@@ -9,13 +9,13 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 - [x] Models for the six entities in SRS 6.1
 - [x] Alembic wired to app settings and model metadata
 - [ ] Initial Alembic migration generated and applied to PostgreSQL (needs a running DB: `docker compose up -d db`)
-- [ ] Seed script: 8 services (FR-19), site settings with exact contact details (SRS 2.5), first Owner admin
+- [x] Seed script: 8 services (FR-19), site settings with exact contact details (SRS 2.5), first Owner admin
 
 ## Public API
-- [ ] Services list and detail by slug (FR-19, FR-21, FR-23) — Must
-- [ ] Gallery list with category filter and featured flag (FR-24, FR-25, FR-09) — Must
-- [ ] Testimonials: approved only (FR-12, FR-49) — Should
-- [ ] Site settings read (FR-03, FR-44) — Must
+- [x] Services list and detail by slug (FR-19, FR-21, FR-23) — Must
+- [x] Gallery list with category filter and featured flag (FR-24, FR-25, FR-09) — Must
+- [x] Testimonials: approved only (FR-12, FR-49) — Should
+- [x] Site settings read (FR-03, FR-44) — Must
 - [ ] Consultation enquiry (FR-30) — Must
 - [ ] Order enquiry with up to 5 reference images, 5 MB each (FR-31) — Must
 - [ ] Laundry enquiry (FR-42) — Should

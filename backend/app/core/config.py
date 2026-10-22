@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     mail_from: EmailStr = "no-reply@example.com"
     enquiry_email: EmailStr = "goodnessngwuta@gmail.com"
 
+    # First Owner account created by the seed script (FR-51)
+    admin_email: EmailStr | None = None
+    admin_password: str | None = None
+    admin_name: str = "Owner"
+
     # Uploads (FR-31, NFR-08, TS-05)
     max_upload_bytes: int = 5 * 1024 * 1024
     max_reference_images: int = 5
