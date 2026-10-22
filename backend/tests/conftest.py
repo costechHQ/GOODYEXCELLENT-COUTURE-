@@ -37,3 +37,25 @@ async def client(session_factory):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
         yield c
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def no_rate_limit():
+    from app.core.limiter import limiter
+
+    limiter.enabled = False
+    yield
+    limiter.enabled = True
+    limiter.reset()
+
+
+@pytest.fixture
+def sent(monkeypatch):
+    """Replaces the background email task with a recorder."""
+    ids: list[int] = []
+
+    async def fake(enquiry_id: int) -> None:
+        ids.append(enquiry_id)
+
+    monkeypatch.setattr("app.api.v1.enquiries.send_enquiry_notification", fake)
+    return ids

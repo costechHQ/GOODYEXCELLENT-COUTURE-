@@ -16,13 +16,13 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 - [x] Gallery list with category filter and featured flag (FR-24, FR-25, FR-09) — Must
 - [x] Testimonials: approved only (FR-12, FR-49) — Should
 - [x] Site settings read (FR-03, FR-44) — Must
-- [ ] Consultation enquiry (FR-30) — Must
-- [ ] Order enquiry with up to 5 reference images, 5 MB each (FR-31) — Must
-- [ ] Laundry enquiry (FR-42) — Should
-- [ ] General contact message (FR-47) — Must
-- [ ] Server-side validation incl. Nigerian and international phone formats (FR-32, FR-33, NFR-07) — Must
-- [ ] Honeypot and rate limiting (FR-37) — Must
-- [ ] Enquiry saved before email; email sent as background task within 1 minute (FR-35, FR-58, TS-04, NFR-15) — Must
+- [x] Consultation enquiry (FR-30) — Must
+- [ ] Order enquiry: text fields done; reference image upload (up to 5, 5 MB each) pending (FR-31) — Must
+- [x] Laundry enquiry (FR-42) — Should
+- [x] General contact message (FR-47) — Must
+- [x] Server-side validation incl. Nigerian and international phone formats (FR-32, FR-33, NFR-07) — Must
+- [x] Honeypot and rate limiting (FR-37) — Must
+- [x] Enquiry saved before email; email sent as background task within 1 minute (FR-35, FR-58, TS-04, NFR-15) — Must
 
 ## Admin API
 - [ ] Sign-in, JWT, protected routes (FR-51) — Must
