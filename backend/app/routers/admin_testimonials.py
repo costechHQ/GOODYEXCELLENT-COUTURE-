@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_admin
+from app.core.media_cleanup import release_image
 from app.db.session import get_session
 from app.models import Testimonial
 from app.schemas.testimonial import TestimonialAdminOut, TestimonialCreate, TestimonialUpdate
@@ -40,15 +41,21 @@ async def create_testimonial(data: TestimonialCreate, session: Session):
 @router.patch("/{testimonial_id}", response_model=TestimonialAdminOut)
 async def update_testimonial(testimonial_id: int, data: TestimonialUpdate, session: Session):
     testimonial = await _get_or_404(session, testimonial_id)
+    old_url = testimonial.photo_url
     for name, value in data.model_dump(exclude_unset=True).items():
         setattr(testimonial, name, value)
     await session.commit()
     await session.refresh(testimonial)
+    if testimonial.photo_url != old_url:
+        await release_image(session, old_url)  # the replaced or removed photo, if nothing else uses it
     return testimonial
 
 
 @router.delete("/{testimonial_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_testimonial(testimonial_id: int, session: Session):
-    await session.delete(await _get_or_404(session, testimonial_id))
+    testimonial = await _get_or_404(session, testimonial_id)
+    old_url = testimonial.photo_url
+    await session.delete(testimonial)
     await session.commit()
+    await release_image(session, old_url)  # only after the row is really gone
     return Response(status_code=status.HTTP_204_NO_CONTENT)

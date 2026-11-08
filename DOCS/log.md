@@ -415,6 +415,21 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
   - There is no cap on total disk used by uploads (each visitor is limited by the rate limit and 25 MB per order), and no virus scan.
 - **Tests:** 565 passing (34 new).
 
+### Merge and push: order reference images
+`feat/order-images` was merged into `main` and pushed (`6ed8e25`); 565 tests passed on `main`; the pushed commits carry no attribution lines and no secrets.
+
+### Feature 35: Clean-up of unused image files
+**Branch:** `feat/image-cleanup` (branched from `main`)
+- **What it does:** picture files are deleted when nothing uses them any more. Triggers: deleting a gallery item or a testimonial, and replacing or clearing the picture on a gallery item, testimonial photo or service picture (`PATCH`). Closes the main gap left by the upload features.
+- **Only our own files.** The database stores just a URL, so a picture counts as ours only if the address starts with this API's own `/media/` address (`API_PUBLIC_URL`) and ends in a name of exactly the shape we generate (32 hex characters, a width, `.webp`). A picture hosted elsewhere, a look-alike path on another host, a different scheme or sub-domain, a query string or a `../` path all give "not ours" and delete nothing (each tested).
+- **Reference counting.** Before deleting an image's files, the code checks whether any other gallery item, service picture, testimonial photo **or enquiry reference picture** still uses that image (any size). If so, the files stay. Tested: two gallery items sharing a picture, a testimonial and a gallery item sharing one, a service sharing one with the gallery, and an admin borrowing a client's order picture for the gallery and deleting it again (the client's picture survives).
+- **Database first, files second.** Files are removed only after the change is committed, so a failed save or a refused request (422, 404, 401) never costs anyone a picture. A problem while deleting files is logged (error type only, no paths) and never fails the request: the item really is deleted.
+- Storage can remove every size of one image by its id (`LocalStorage.delete_image`). The id must be exactly 32 lowercase hex characters, so a wildcard such as `*` or `../*` deletes nothing (tested).
+- Mutation checks: skipping the "still in use" check fails 5 tests; trusting any host with `/media/` in the path fails the look-alike tests; removing the plain-id guard fails the wildcard tests.
+- **Real PostgreSQL:** 10 of 10 live checks passed (shared picture kept while one user remains, deleted with the last, replacement, look-alike host, client reference picture protected). The database was then recreated clean.
+- **Known gaps:** enquiries cannot be deleted by admins, so their pictures are never removed (and `ON DELETE CASCADE` only removes the rows); the stored files are not removed if a database row is deleted by hand outside the API; there is still no total-disk cap or virus scan; a file orphaned before this feature (none exist in a fresh database) would need removing by hand.
+- **Tests:** 609 passing (44 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -448,7 +463,7 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`) → admin lockout columns (`c4d8e1f95a27`) → `password_reset_tokens` and `password_changed_at` (`d5a9f3b27e61`) → `enquiry_images` (`e7b3c2a9d814`).
 
-**Tests:** 565 passing. They use in-memory SQLite; the whole system was also verified on real PostgreSQL 17 (see Verification above).
+**Tests:** 609 passing. They use in-memory SQLite; the whole system was also verified on real PostgreSQL 17 (see Verification above).
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 
@@ -482,4 +497,4 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** clean-up of image files when a gallery item or testimonial is deleted or its picture is replaced; then the quality gates (security review, performance targets, README).
+**Next:** the quality gates: `ruff`, a security review of the whole API, timing checks against NFR-05 and NFR-29, and the README with setup and deployment notes (reverse-proxy request-size limit, `--proxy-headers`, persistent `UPLOAD_DIR`). Then the frontend.
