@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, String, func, true
+from sqlalchemy import Boolean, DateTime, Enum, Integer, String, func, text, true
 from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from app.db.base import Base
@@ -26,6 +26,9 @@ class AdminUser(Base):
     )
     # Deactivate instead of deleting, so enquiry history and audit trails stay intact.
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default=true())
+    # Failed-login lockout (NFR-06). The counter resets on a good sign-in or when a lock starts.
+    failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     @validates("email")

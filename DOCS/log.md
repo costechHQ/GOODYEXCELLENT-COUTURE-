@@ -139,7 +139,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `LaundryIn` (FR-42): name, phone and garment types required; message optional. The garment types are one free-text field stored in `garment_type`, since the form takes a list as text (for example "Senator, kaftan").
 - Stored with type `laundry`. Same phone normalising, rejection of unknown fields and 201 `{id, message}` response as the other forms. Still no email, honeypot or rate limiting.
 - **Open question for the owner (SRS question 9):** does laundry include pick-up and delivery, and is it open to the public? This affects the page copy and perhaps an address field later.
-- **Tests:** 206 passing.
+- **Tests:** 221 passing.
 
 ### Feature 17: `POST /enquiries/order` (text fields)
 **Branch:** `feat/order-endpoint` (branched from `feat/laundry-endpoint`)
@@ -224,6 +224,19 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - **Not done: failed-login lockout (NFR-06). Until it lands, login has no brute-force protection, so do not deploy before the next feature.** Password reset (FR-56) also still to do.
 - **Tests:** 206 passing (29 new).
 
+### Feature 24: Failed-login lockout (NFR-06)
+**Branch:** `feat/login-lockout` (branched from `feat/admin-login`, which is not merged yet)
+- **Chosen over a per-IP login limit:** a temporary lock on the account. After `LOGIN_MAX_FAILURES` (5) wrong passwords in a row the account locks for `LOGIN_LOCK_MINUTES` (15). Both are settings in `.env.example`.
+- New `admin_users` columns `failed_login_attempts` and `locked_until`. Migration `c4d8e1f95a27`, **hand-written** (no Docker); the PostgreSQL SQL was checked offline in both directions. Still to run on a real PostgreSQL, with the other two hand-written migrations.
+- The counter is incremented inside the database, so two simultaneous guesses are both counted. It resets on a good sign-in and when a lock begins.
+- **A lock is invisible from outside.** A locked account refuses even the correct password with the same generic 401 and no `Retry-After`, and still spends a password check, so neither the response nor its timing reveals the lock. Attempts during a lock are not counted and do not extend it, so an attacker cannot keep the real owner locked out indefinitely.
+- A deactivated account with the right password is refused and not counted.
+- **Known gap:** unknown emails have no account to count against, so guessing *which* emails exist is not slowed here (and the response gives nothing away anyway). A per-IP limit on `/admin/login` could be added later if needed.
+- **Trade-off:** an attacker can still lock a known admin's account by guessing wrongly 5 times every 15 minutes. That is accepted for Release 1; the Owner can wait it out.
+- Test note: SQLite returns naive datetimes, so the lock check treats a naive `locked_until` as UTC; PostgreSQL returns aware ones.
+- Test warnings: the suite shows 3 to 5 intermittent `PytestUnhandledThreadExceptionWarning`s from `aiosqlite` threads closing after the event loop in tests that mix the synchronous `TestClient` with async fixtures. They were already present before this feature (confirmed by stashing). Harmless, but worth tidying later.
+- **Tests:** 221 passing (15 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -247,9 +260,9 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 | `POST /enquiries/consultation`, `/order`, `/laundry`, `/contact` | Public forms (honeypot, rate limit, email alert) |
 | `POST /admin/login`, `GET /admin/me` | Admin sign-in (Bearer JWT) and current admin |
 
-**Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`).
+**Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`) → admin lockout columns (`c4d8e1f95a27`).
 
-**Tests:** 206 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 221 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 
@@ -277,11 +290,11 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - Order reference images (all four enquiry endpoints exist; consultation, contact, laundry and the order text fields are done)
 - Real-server check of enquiry email (code done, tested with a fake SMTP only)
 - Reference image uploads and the image pipeline (WebP re-encoding)
-- Failed-login lockout; password reset by email
+- Password reset by email; password reset by email
 - Admin endpoints: gallery, services, testimonials, enquiries with status workflow and notes, settings
 - Seed for the first Owner account
 - Quality gates: security review, performance targets, README with setup and deployment
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** failed-login lockout (NFR-06): per-account counters, a temporary lock, and the migration for them. Required before any deployment.
+**Next feature:** the gallery admin API (FR-28), starting with the admin-protected CRUD without file upload (image URLs only); the upload pipeline follows.
