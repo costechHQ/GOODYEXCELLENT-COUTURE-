@@ -139,7 +139,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `LaundryIn` (FR-42): name, phone and garment types required; message optional. The garment types are one free-text field stored in `garment_type`, since the form takes a list as text (for example "Senator, kaftan").
 - Stored with type `laundry`. Same phone normalising, rejection of unknown fields and 201 `{id, message}` response as the other forms. Still no email, honeypot or rate limiting.
 - **Open question for the owner (SRS question 9):** does laundry include pick-up and delivery, and is it open to the public? This affects the page copy and perhaps an address field later.
-- **Tests:** 221 passing.
+- **Tests:** 260 passing.
 
 ### Feature 17: `POST /enquiries/order` (text fields)
 **Branch:** `feat/order-endpoint` (branched from `feat/laundry-endpoint`)
@@ -237,6 +237,21 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - Test warnings: the suite shows 3 to 5 intermittent `PytestUnhandledThreadExceptionWarning`s from `aiosqlite` threads closing after the event loop in tests that mix the synchronous `TestClient` with async fixtures. They were already present before this feature (confirmed by stashing). Harmless, but worth tidying later.
 - **Tests:** 221 passing (15 new).
 
+### Merge: login branches into `main`
+`feat/admin-login` and `feat/login-lockout` were merged into `main` with `--no-ff` (`8f271b5`, `af7a713`). 221 tests passed on `main`. Not pushed: `main` was 8 commits ahead of GitHub.
+
+### Feature 25: Gallery admin API (create, edit, delete)
+**Branch:** `feat/gallery-admin` (branched from `main`)
+- `app/routers/admin_gallery.py`: `POST /admin/gallery` (201), `PATCH /admin/gallery/{id}`, `DELETE /admin/gallery/{id}` (204). The whole router is behind `get_current_admin` (FR-51), so Owner and Staff can both use it (FR-52). Every route returns 401 without a valid token, and nothing changes when it is refused (tested).
+- **Image URLs only for now:** `image_url` must be an absolute `http(s)` URL (max 500), so `javascript:`, `data:`, `ftp:` and relative paths can never be stored. File upload and the WebP pipeline come later (FR-29).
+- `alt_text` is required and non-empty on create (CR-04). Text is trimmed. Unknown fields (for example `id`) are rejected.
+- A new item goes to the end (`max(display_order) + 1`) unless `display_order` is given.
+- `PATCH` changes only the fields sent. `caption` may be set to `null` to clear it; every other field rejects `null`. An empty body is a no-op. A missing item is 404.
+- Admin responses add `display_order` and `created_at`; the public `GET /gallery` still shows neither.
+- `DELETE` removes only the database row. There are no stored files yet; when uploads arrive, deleting must also remove the files.
+- **Not done:** bulk reorder and feature toggles in one call (the single-item `PATCH` already sets `featured` and `display_order`), upload (FR-29), and a filter for the admin list (the public list covers it for now).
+- **Tests:** 260 passing (39 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -259,10 +274,11 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 | `GET /testimonials` | Approved testimonials |
 | `POST /enquiries/consultation`, `/order`, `/laundry`, `/contact` | Public forms (honeypot, rate limit, email alert) |
 | `POST /admin/login`, `GET /admin/me` | Admin sign-in (Bearer JWT) and current admin |
+| `POST /admin/gallery`, `PATCH`/`DELETE /admin/gallery/{id}` | Gallery management (admin only) |
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`) → admin lockout columns (`c4d8e1f95a27`).
 
-**Tests:** 221 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 260 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 
@@ -297,4 +313,4 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** the gallery admin API (FR-28), starting with the admin-protected CRUD without file upload (image URLs only); the upload pipeline follows.
+**Next feature:** services text editing for admins (FR-21, FR-52): `PATCH /admin/services/{id}`.
