@@ -10,12 +10,12 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.security import hash_password
+from app.core.security import MIN_PASSWORD_LENGTH, hash_password
 from app.db.session import SessionLocal
 from app.models import AdminUser, Service, SiteSettings
 from app.models.enums import AdminRole
 
-MIN_OWNER_PASSWORD_LENGTH = 12  # NFR-06
+MIN_OWNER_PASSWORD_LENGTH = MIN_PASSWORD_LENGTH  # NFR-06
 
 # The eight services in FR-19, in display order.
 SERVICES = [
