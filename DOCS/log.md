@@ -430,6 +430,22 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - **Known gaps:** enquiries cannot be deleted by admins, so their pictures are never removed (and `ON DELETE CASCADE` only removes the rows); the stored files are not removed if a database row is deleted by hand outside the API; there is still no total-disk cap or virus scan; a file orphaned before this feature (none exist in a fresh database) would need removing by hand.
 - **Tests:** 609 passing (44 new).
 
+### Merge and push: image clean-up
+`feat/image-cleanup` was merged into `main` and pushed (`67e4ec8`); 609 tests passed on `main`; the pushed commits carry no attribution lines and no secrets.
+
+### Feature 36: Site settings editing (FR-55)
+**Branch:** `feat/settings-admin` (branched from `main`)
+- `PATCH /admin/settings` (behind `get_current_admin`): changes only the fields sent and returns the same shape as the public `GET /settings`, so the public site shows an edit at once. Anonymous and bad-token requests get 401 and change nothing (tested). **Any signed-in admin may edit, Owner or Staff,** because FR-55 says "Admins"; these details appear on every page, so the owner may prefer Owner-only, which is a one-line change.
+- **Phone numbers:** 1 to 5, each normalised to the international form (`0806 003 6531` becomes `+2348060036531`), duplicates dropped, order kept. A bad number rejects the whole request.
+- **Links:** `whatsapp_link`, `map_link` and every social link must be `https://` addresses (so `javascript:`, `data:`, plain `http` and relative paths are refused). Social network names must be short lowercase words (`instagram`, `tiktok`), at most ten.
+- **Opening hours** (the SRS gave no format, so one was chosen): a map from day name (`monday` to `sunday`) to short text such as `"9:00 AM - 6:00 PM"` or `"Closed"`; any subset of days. Opening hours and social links **replace** the previous value, they are not merged.
+- **Clearing:** `address`, `map_link`, `opening_hours` and `social_links` may be set to `null`. `phone_numbers`, `whatsapp_link` and `email` may not, because the site must always be reachable. Unknown fields (`id`, `phone`, `is_admin`) are rejected. A request with one valid and one invalid field changes nothing. Editing one field leaves the SRS 2.5 contact details exactly as seeded (tested).
+- **Bug found on real PostgreSQL that SQLite hid:** SQLAlchemy's JSON type stores Python `None` as the JSON text `null`, not as a true SQL `NULL`, so clearing `opening_hours` or `social_links` left a value that `IS NULL` queries would not match (the API still answered `null`, so only direct queries would have noticed). Fixed with `JSON(none_as_null=True)` on those two columns; no migration needed (`alembic check` clean). A test now reads the raw stored value.
+- Mutation checks: accepting `http://` fails 15 tests, allowing the required fields to be cleared fails 3, skipping phone normalisation fails 5.
+- **Real PostgreSQL:** 10 of 10 live checks passed (after the fix above); the database was then recreated clean.
+- **Tests:** 676 passing (67 new).
+- **This completes the admin API:** every feature in the checklist is now built. What remains are the quality gates.
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -460,10 +476,11 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 | `GET`/`POST /admin/testimonials`, `PATCH`/`DELETE /admin/testimonials/{id}` | Testimonial management (admin only) |
 | `POST /admin/password-reset/request`, `/confirm` | Password reset by emailed one-time link (public, rate limited) |
 | `POST /admin/uploads/images`, `GET /media/{name}` | Image upload (admin) and public image files |
+| `PATCH /admin/settings` | Edit site-wide contact details, hours and social links (admin only) |
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`) → admin lockout columns (`c4d8e1f95a27`) → `password_reset_tokens` and `password_changed_at` (`d5a9f3b27e61`) → `enquiry_images` (`e7b3c2a9d814`).
 
-**Tests:** 609 passing. They use in-memory SQLite; the whole system was also verified on real PostgreSQL 17 (see Verification above).
+**Tests:** 676 passing. They use in-memory SQLite; the whole system was also verified on real PostgreSQL 17 (see Verification above).
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 

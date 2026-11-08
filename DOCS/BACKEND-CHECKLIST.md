@@ -34,7 +34,7 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 - [x] Testimonials add, edit, hide, delete (FR-50) — Should
 - [x] Enquiries: list, search, filter, export, status workflow (FR-53) — Must (export is Owner only)
 - [x] Enquiry internal notes (FR-54) — Should
-- [ ] Site settings editing (FR-55) — Should
+- [x] Site settings editing (FR-55) — Should
 
 ## Quality gates
 - [ ] Tests cover every Must item above
