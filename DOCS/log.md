@@ -139,7 +139,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `LaundryIn` (FR-42): name, phone and garment types required; message optional. The garment types are one free-text field stored in `garment_type`, since the form takes a list as text (for example "Senator, kaftan").
 - Stored with type `laundry`. Same phone normalising, rejection of unknown fields and 201 `{id, message}` response as the other forms. Still no email, honeypot or rate limiting.
 - **Open question for the owner (SRS question 9):** does laundry include pick-up and delivery, and is it open to the public? This affects the page copy and perhaps an address field later.
-- **Tests:** 286 passing.
+- **Tests:** 307 passing.
 
 ### Feature 17: `POST /enquiries/order` (text fields)
 **Branch:** `feat/order-endpoint` (branched from `feat/laundry-endpoint`)
@@ -266,6 +266,18 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - The seeded descriptions are still the placeholder "Description to be supplied." The owner's approved copy can now be entered through this endpoint (FR-21, CR-02).
 - **Tests:** 286 passing (26 new).
 
+### Merge: services admin into `main`
+`feat/services-admin` was merged into `main` with `--no-ff`; 286 tests passed on `main`. Not pushed.
+
+### Feature 27: Enquiries admin, list and detail (read-only)
+**Branch:** `feat/enquiries-admin-list` (branched from `main`)
+- `app/routers/admin_enquiries.py`: `GET /admin/enquiries` and `GET /admin/enquiries/{id}`, both behind `get_current_admin` (FR-51, FR-53). Enquiries hold clients' personal details, so anonymous requests get 401 and no data appears in the response (tested). There is no public way to read them.
+- The list is **newest first** (`created_at` descending, then `id` descending, so equal timestamps stay stable). Filters: `type` and `status`; they combine. Pagination: `limit` (1 to 100, default 50) and `offset`. Bad values return 422.
+- The list returns an envelope `{items, total, limit, offset}`; `total` counts all matches ignoring paging so the admin screen can page. This differs from the public lists, which return plain arrays.
+- List rows are **summaries** (id, type, status, name, phone, email, preferred contact, service, subject, created date): no message and no internal notes. The detail route returns the whole record including `internal_notes` (FR-54).
+- **Not done yet (each its own step):** text search over name, phone, email, subject and message; changing `status` and writing internal notes (`PATCH`); CSV export (FR-53).
+- **Tests:** 307 passing (21 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -290,10 +302,11 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 | `POST /admin/login`, `GET /admin/me` | Admin sign-in (Bearer JWT) and current admin |
 | `POST /admin/gallery`, `PATCH`/`DELETE /admin/gallery/{id}` | Gallery management (admin only) |
 | `GET /admin/services`, `PATCH /admin/services/{id}` | Services text editing (admin only) |
+| `GET /admin/enquiries`, `GET /admin/enquiries/{id}` | Enquiry list (filter, page) and detail (admin only) |
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`) → admin lockout columns (`c4d8e1f95a27`).
 
-**Tests:** 286 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 307 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 
@@ -328,4 +341,4 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** the enquiries admin API (FR-53): list with filters, search and the status workflow.
+**Next feature:** `PATCH /admin/enquiries/{id}` to change status and write internal notes (FR-53, FR-54); then search and CSV export.
