@@ -126,6 +126,14 @@ The backend was first scaffolded in large batches: all six models, every router 
 - Not yet in this endpoint: email notification, honeypot, rate limiting. Each gets its own feature.
 - **Tests:** 72 passing (31 new): phone formats, required and invalid fields, staff fields rejected, nothing saved when invalid.
 
+### Feature 15: `POST /enquiries/contact`
+**Branch:** `feat/contact-endpoint` (branched from `feat/consultation-endpoint`)
+- `ContactIn` in `app/schemas/enquiry.py` (FR-47): name, subject and message required; phone and email each optional, but at least one is required so staff can reply. Stored with type `general`; `preferred_contact` stays empty because this form does not ask for it.
+- A blank phone or email (`""` or spaces, which is what an empty web form sends) counts as not provided, so it does not fail validation by itself.
+- Phone reuses `normalise_phone`; unknown fields are rejected as in the consultation form.
+- Same 201 `{id, message}` response. Still no email, honeypot or rate limiting.
+- **Tests:** 89 passing (16 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -149,7 +157,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`).
 
-**Tests:** 72 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 89 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 5 of 6 done.
 
@@ -174,7 +182,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - Logo, photos, full address, map link, opening hours, social links, testimonials with consent
 
 **Remaining backend**
-- Submission endpoints for order, laundry and contact (consultation done)
+- Submission endpoints for order and laundry (consultation and contact done)
 - Validation for Nigerian and international phone numbers; honeypot and rate limiting; email as a background task (saved first, so a mail failure never loses an enquiry)
 - Reference image uploads and the image pipeline (WebP re-encoding)
 - `admin_users` table; sign-in, Argon2 hashing and lockout; password reset by email
@@ -184,4 +192,4 @@ The backend was first scaffolded in large batches: all six models, every router 
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** `POST /enquiries/contact` (general form, FR-47), reusing the phone validator.
+**Next feature:** `POST /enquiries/laundry` (FR-42), then the order form (text fields first, images later).
