@@ -166,3 +166,22 @@ class EnquiryPage(BaseModel):
     total: int  # all matches, ignoring limit and offset, so the screen can page
     limit: int
     offset: int
+
+
+InternalNotes = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=5000)]
+
+
+class EnquiryUpdate(BaseModel):
+    """What staff may change (FR-53, FR-54). The client's own details and message stay read-only.
+    Send only the fields to change. `internal_notes` may be null to clear it; `status` may not."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: EnquiryStatus | None = None
+    internal_notes: InternalNotes | None = None
+
+    @model_validator(mode="after")
+    def status_cannot_be_null(self):
+        if "status" in self.model_fields_set and self.status is None:
+            raise ValueError("status cannot be null")
+        return self
