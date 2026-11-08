@@ -9,7 +9,7 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 - [x] Models for the six entities in SRS 6.1 (6 of 6: site_settings, services, gallery_items, testimonials, enquiries, admin_users; the two hand-written migrations still need a run on real PostgreSQL)
 - [x] Alembic wired to app settings and model metadata
 - [x] Initial Alembic migration generated and applied to PostgreSQL (site_settings; later tables get their own migrations)
-- [ ] Seed script: site settings with exact contact details (SRS 2.5) and 8 services (FR-19) done; first Owner admin pending
+- [x] Seed script: site settings with exact contact details (SRS 2.5) and 8 services (FR-19) done; first Owner admin done (from environment variables)
 
 ## Public API
 - [x] Services list and detail by slug (FR-19, FR-21, FR-23) — Must

@@ -139,7 +139,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `LaundryIn` (FR-42): name, phone and garment types required; message optional. The garment types are one free-text field stored in `garment_type`, since the form takes a list as text (for example "Senator, kaftan").
 - Stored with type `laundry`. Same phone normalising, rejection of unknown fields and 201 `{id, message}` response as the other forms. Still no email, honeypot or rate limiting.
 - **Open question for the owner (SRS question 9):** does laundry include pick-up and delivery, and is it open to the public? This affects the page copy and perhaps an address field later.
-- **Tests:** 165 passing.
+- **Tests:** 177 passing.
 
 ### Feature 17: `POST /enquiries/order` (text fields)
 **Branch:** `feat/order-endpoint` (branched from `feat/laundry-endpoint`)
@@ -196,6 +196,19 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - Migration `b7e2d4a81c36`, **written by hand** (no Docker here), with `DROP TYPE adminrole` on downgrade. Checked by rendering the PostgreSQL SQL offline in both directions. **Still to do:** apply it to a real PostgreSQL and run `alembic check`. The earlier hand-written enquiries migration has the same pending check.
 - **Tests:** 165 passing (5 new).
 
+### Feature 22: First Owner seed and password hashing
+**Branch:** `feat/owner-seed` (branched from `feat/admin-users`, which is not merged yet)
+- Added `argon2-cffi`. `app/core/security.py` wraps it: `hash_password` (Argon2id, library defaults) and `verify_password` (returns `False` for a wrong password or a malformed hash). The sign-in feature will reuse both (NFR-06).
+- **Chosen over a random printed password:** the Owner comes from `OWNER_EMAIL` and `OWNER_PASSWORD`, so no password lives in the repo and none is printed or logged. Both are in `.env.example`.
+- `seed_owner()` in `app/db/seed.py`, called by the existing seed:
+  - Does nothing if neither variable is set (a fresh clone and the tests need no setup).
+  - Creates the Owner only if **no Owner exists yet**. A leftover `OWNER_EMAIL` on a server can never add a second Owner, and re-running never resets the password. A Staff account does not block it.
+  - Stops with a clear message and creates nothing if only one variable is set, the email is invalid, or the password is under 12 characters. The password never appears in an error.
+- **After the first run, remove `OWNER_PASSWORD` from the environment.**
+- Note: the email validator rejects reserved test domains such as `.test`; real addresses are unaffected. Tests use `example.com`.
+- **Not yet run against real PostgreSQL** (no Docker here); verified on SQLite only.
+- **Tests:** 177 passing (12 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -219,7 +232,7 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`).
 
-**Tests:** 165 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 177 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 
@@ -254,4 +267,4 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** the Owner seed (first admin account), then sign-in with Argon2 and JWT.
+**Next feature:** `POST /admin/login` with JWT (the lockout comes right after). Needs a JWT library and a `JWT_SECRET` setting.
