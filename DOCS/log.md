@@ -449,6 +449,19 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - **Tests:** 676 passing (67 new).
 - **This completes the admin API:** every feature in the checklist is now built. What remains are the quality gates.
 
+### Merge and push: site settings
+`feat/settings-admin` was merged into `main` and pushed (`b1dc42d`); 676 tests passed on `main`; the pushed commits carry no attribution lines and no secrets.
+
+### Security review (SRS 8.3, NFR-06)
+**Branch:** `chore/security-review` (branched from `main`). **Full report: `DOCS/SECURITY-REVIEW.md`.** Result: **no critical or high issues found**; five medium and low issues found and fixed; residual risks and a mandatory deployment checklist are listed in the report. This was a developer review backed by automated checks, not an independent penetration test.
+- **Evidence gathered:** every admin route tested without credentials; a scan of the whole git history for secrets (none); `pip-audit` on all 72 runtime dependencies (no known vulnerabilities); a read of every log call (only exception types and ids); a search for dangerous constructs (none; the only raw SQL is a constant `SELECT 1`); a real uvicorn server run in production mode against PostgreSQL.
+- **Fixed:** (F1) the interactive docs and schema were public, now off in production; (F2) no browser safety headers, now on every response, with HSTS in production; (F3) admin answers now `Cache-Control: no-store`; (F4) `/admin/login` had no per-address limit, so unauthenticated callers could burn CPU on Argon2 or spray many accounts, now 20 attempts per address per 10 minutes; (F5) only the upload routes had a request-size cap, now a 1 MB default on every POST, PUT and PATCH.
+- **App factory:** `app/main.py` now builds the application with `create_app(environment)` (`app = create_app()` is unchanged for everything else), so production behaviour is testable.
+- **Permanent regression tests (`tests/test_security.py`, 48 tests):** every admin route refuses anonymous, forged and wrong-scheme callers; exactly one route is Owner-only; the only public routes that change data are the four enquiry forms; every request model rejects unknown fields; docs off in production; headers present on every kind of response; sign-in limit; size cap; no secret in an error page. Routes are listed from the OpenAPI schema because this FastAPI version wraps included routers (`app.routes` no longer lists them), which my first attempt at the check missed and reported as "no unguarded routes" while checking nothing; a floor on the number of routes checked now prevents that kind of vacuous pass.
+- **Mutation checks:** 11 protections were removed in turn; 10 made a test fail, the 11th (leaving `docs_url` on) is an equivalent change because the docs need the schema URL too.
+- **Still to do at deployment (see the report):** `ENVIRONMENT=production`, a strong `JWT_SECRET`, a strong unique database password (the default `goody`/`goody` is for development only), HTTPS behind a reverse proxy with its own request-size limit, `--proxy-headers --forwarded-allow-ips --no-server-header`, real CORS and URLs, persistent `UPLOAD_DIR`, remove `OWNER_PASSWORD` after the first seed, and real email tested.
+- **Tests:** 724 passing (48 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -483,7 +496,7 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`) → admin lockout columns (`c4d8e1f95a27`) → `password_reset_tokens` and `password_changed_at` (`d5a9f3b27e61`) → `enquiry_images` (`e7b3c2a9d814`).
 
-**Tests:** 676 passing. They use in-memory SQLite; the whole system was also verified on real PostgreSQL 17 (see Verification above).
+**Tests:** 724 passing. They use in-memory SQLite; the whole system was also verified on real PostgreSQL 17 (see Verification above).
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 
@@ -517,4 +530,4 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next:** the quality gates: `ruff`, a security review of the whole API, timing checks against NFR-05 and NFR-29, and the README with setup and deployment notes (reverse-proxy request-size limit, `--proxy-headers`, persistent `UPLOAD_DIR`). Then the frontend.
+**Where things stand (hand-off):** every feature in `BACKEND-CHECKLIST.md` is built and the security review is done (`SECURITY-REVIEW.md`). Work on `main` is pushed to GitHub up to `b1dc42d`; `chore/security-review` is committed locally and may not be pushed or merged yet. The remaining quality gates, in suggested order: (1) add `ruff` as a dev dependency, run `uv run ruff check .`, fix findings (it is not installed yet); (2) write `backend/README.md` (setup with Docker or a local PostgreSQL, environment variables from `.env.example`, running the API, the test and migration commands, and the deployment checklist from the security report); (3) timing checks against NFR-05 (form responses 2 s or less) and NFR-29 (gallery with 500 items) on real PostgreSQL, adding an index if needed; (4) confirm tests cover every Must item. Then the frontend (`frontend/` is still the untouched `create-next-app` output; move it to `bun`). Needed from the owner (SRS 6.2): approved service descriptions, logo, photos, full address, map link, opening hours, social links, testimonials with consent, the enquiry inbox address and the mail account to send from, and the answers about laundry pick-up and a response-time promise.

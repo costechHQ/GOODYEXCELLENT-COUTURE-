@@ -52,6 +52,12 @@ enquiry_limiter = RateLimiter(settings.rate_limit_max_requests, settings.rate_li
 reset_limiter = RateLimiter(10, 900)
 
 
+# Admin sign-in: 20 attempts per IP per 10 minutes. The per-account lockout stops guessing one account;
+# this stops one machine spraying many accounts, and stops unauthenticated requests being used to burn
+# CPU, because every attempt (even for an unknown email) costs a deliberately slow password check.
+login_limiter = RateLimiter(20, 600)
+
+
 def _enforce(limiter: RateLimiter, request: Request, message: str) -> None:
     # The connection address, never a client-sent header such as X-Forwarded-For, which anyone can forge.
     key = request.client.host if request.client else "unknown"
@@ -72,3 +78,8 @@ async def limit_enquiries(request: Request) -> None:
 async def limit_password_resets(request: Request) -> None:
     """Dependency for the password-reset routes."""
     _enforce(reset_limiter, request, "Too many attempts. Please wait a few minutes and try again.")
+
+
+async def limit_logins(request: Request) -> None:
+    """Dependency for the admin sign-in route."""
+    _enforce(login_limiter, request, "Too many sign-in attempts. Please wait a few minutes and try again.")
