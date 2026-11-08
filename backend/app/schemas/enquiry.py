@@ -4,7 +4,7 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, field_validator, model_validator
 
 from app.core.phone import normalise_phone
-from app.models.enums import ContactMethod
+from app.models.enums import ContactMethod, EnquiryStatus, EnquiryType
 
 # Trim whitespace, so "  " counts as empty.
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=120)]
@@ -126,3 +126,43 @@ class EnquiryReceived(BaseModel):
 
     id: int
     message: str = Field(default="Thank you. We have received your request and will be in touch.")
+
+
+# --- admin (FR-53) ----------------------------------------------------------
+
+
+class EnquirySummary(BaseModel):
+    """One row in the admin list: enough to triage, without the full message or notes."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    type: EnquiryType
+    status: EnquiryStatus
+    name: str
+    phone: str | None
+    email: str | None
+    preferred_contact: ContactMethod | None
+    service: str | None
+    subject: str | None
+    created_at: datetime
+
+
+class EnquiryDetail(EnquirySummary):
+    """The whole record, including the staff-only notes (FR-54)."""
+
+    message: str | None
+    preferred_at: datetime | None
+    garment_type: str | None
+    occasion: str | None
+    needed_by: date | None
+    quantity: int | None
+    fabric_preference: str | None
+    internal_notes: str | None
+
+
+class EnquiryPage(BaseModel):
+    items: list[EnquirySummary]
+    total: int  # all matches, ignoring limit and offset, so the screen can page
+    limit: int
+    offset: int
