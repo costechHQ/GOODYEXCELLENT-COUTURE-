@@ -1,7 +1,8 @@
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentAdmin
@@ -14,20 +15,56 @@ from app.schemas.admin import AdminOut, LoginIn, TokenOut
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
+def _is_locked(admin: AdminUser) -> bool:
+    if admin.locked_until is None:
+        return False
+    until = admin.locked_until
+    if until.tzinfo is None:  # SQLite hands back naive datetimes; PostgreSQL returns aware ones
+        until = until.replace(tzinfo=UTC)
+    return until > datetime.now(UTC)
+
+
+async def _record_failure(session: AsyncSession, admin: AdminUser) -> None:
+    # Increment inside the database so two simultaneous guesses are both counted.
+    await session.execute(
+        update(AdminUser)
+        .where(AdminUser.id == admin.id)
+        .values(failed_login_attempts=AdminUser.failed_login_attempts + 1)
+    )
+    await session.refresh(admin)
+    if admin.failed_login_attempts >= settings.login_max_failures:
+        admin.locked_until = datetime.now(UTC) + timedelta(minutes=settings.login_lock_minutes)
+        admin.failed_login_attempts = 0
+    await session.commit()
+
+
 @router.post("/login", response_model=TokenOut)
 async def login(data: LoginIn, session: Annotated[AsyncSession, Depends(get_session)]):
     if not jwt_configured():
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="Sign-in is not available")
 
     admin = await session.scalar(select(AdminUser).where(AdminUser.email == data.email.strip().lower()))
+
     if admin is None:
         burn_password_check(data.password)
-        password_ok = False
+        succeeded = False
+    elif _is_locked(admin):
+        # Locked: refuse even the right password, without counting or extending the lock, and
+        # without any sign that a lock exists. Spend the same time as a real check.
+        burn_password_check(data.password)
+        succeeded = False
+    elif not verify_password(data.password, admin.password_hash):
+        await _record_failure(session, admin)
+        succeeded = False
     else:
-        password_ok = verify_password(data.password, admin.password_hash)
+        succeeded = admin.is_active
+        if succeeded:
+            admin.failed_login_attempts = 0
+            admin.locked_until = None
+            await session.commit()
 
     # One message for every failure, so it never says which part was wrong.
-    if admin is None or not password_ok or not admin.is_active:
+    if not succeeded:
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",

@@ -44,5 +44,9 @@ class Settings(BaseSettings):
     jwt_secret: SecretStr = SecretStr("")
     access_token_minutes: int = 60
 
+    # Failed-login lockout (NFR-06): this many wrong passwords in a row lock the account.
+    login_max_failures: int = 5
+    login_lock_minutes: int = 15
+
 
 settings = Settings()

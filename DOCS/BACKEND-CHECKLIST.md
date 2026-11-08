@@ -26,7 +26,7 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 
 ## Admin API
 - [x] Sign-in, JWT, protected routes (FR-51) — Must
-- [ ] Argon2 hashing and failed-login lockout (NFR-06) — Must (Argon2 done; lockout pending)
+- [x] Argon2 hashing and failed-login lockout (NFR-06) — Must
 - [ ] Password reset by email (FR-56) — Must
 - [ ] Gallery: upload, caption, categorise, reorder, feature, delete (FR-28) — Must
 - [ ] Upload: JPG/PNG/WebP only, size limit, re-encoded to WebP with resized variants (FR-29, NFR-04, NFR-08)
