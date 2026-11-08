@@ -139,7 +139,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `LaundryIn` (FR-42): name, phone and garment types required; message optional. The garment types are one free-text field stored in `garment_type`, since the form takes a list as text (for example "Senator, kaftan").
 - Stored with type `laundry`. Same phone normalising, rejection of unknown fields and 201 `{id, message}` response as the other forms. Still no email, honeypot or rate limiting.
 - **Open question for the owner (SRS question 9):** does laundry include pick-up and delivery, and is it open to the public? This affects the page copy and perhaps an address field later.
-- **Tests:** 132 passing.
+- **Tests:** 143 passing.
 
 ### Feature 17: `POST /enquiries/order` (text fields)
 **Branch:** `feat/order-endpoint` (branched from `feat/laundry-endpoint`)
@@ -157,6 +157,17 @@ The backend was first scaffolded in large batches: all six models, every router 
 - A submission that is invalid *and* has the honeypot set still returns 422; this is a minor, accepted leak.
 - A honeypot stops simple bots only. Rate limiting (next) handles the rest; CAPTCHA only if abuse appears (FR-37).
 - **Tests:** 132 passing (10 new, run against all four forms).
+
+### Feature 19: Rate limiting on the enquiry forms
+**Branch:** `feat/rate-limiting` (branched from `feat/honeypot`)
+- `app/core/rate_limit.py`: an in-memory sliding-window `RateLimiter` (injectable clock for tests) and a `limit_enquiries` dependency applied to the whole enquiries router. Over the limit returns **429** with a `Retry-After` header.
+- **Chosen over a database-backed limiter** for Release 1 (one small server): no new dependency or migration. Trade-off: counts reset on restart and are not shared between server processes. Revisit if the API is ever scaled out.
+- Settings `RATE_LIMIT_MAX_REQUESTS` (10) and `RATE_LIMIT_WINDOW_SECONDS` (600), documented in `.env.example`.
+- Counted per client IP across all four forms together. Every attempt counts, including invalid ones and honeypot hits, so it cannot be probed with bad data. Blocked attempts are not counted, so waiting out the window always works. Ten attempts leaves room for a visitor to fix typos.
+- The IP comes from the connection (`request.client.host`). A client-sent `X-Forwarded-For` is deliberately ignored because anyone can forge it (tested). **Deployment note for the README:** behind a reverse proxy, every visitor would share the proxy's IP, so start the server with uvicorn's proxy-header support and a trusted-proxy list (`--proxy-headers --forwarded-allow-ips`). Until then the limiter would count all visitors as one.
+- Idle clients are swept once more than 10,000 are tracked, so memory stays bounded.
+- `tests/conftest.py` has an autouse fixture that empties the limiter around every test.
+- **Tests:** 143 passing (11 new).
 
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
@@ -181,7 +192,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`).
 
-**Tests:** 132 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 143 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 5 of 6 done.
 
@@ -207,7 +218,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 
 **Remaining backend**
 - Order reference images (all four enquiry endpoints exist; consultation, contact, laundry and the order text fields are done)
-- Validation for Nigerian and international phone numbers; rate limiting (honeypot done); email as a background task (saved first, so a mail failure never loses an enquiry)
+- Email notification as a background task (saved first, so a mail failure never loses an enquiry)
 - Reference image uploads and the image pipeline (WebP re-encoding)
 - `admin_users` table; sign-in, Argon2 hashing and lockout; password reset by email
 - Admin endpoints: gallery, services, testimonials, enquiries with status workflow and notes, settings
@@ -216,4 +227,4 @@ The backend was first scaffolded in large batches: all six models, every router 
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** rate limiting on the four enquiry endpoints (FR-37).
+**Next feature:** email notification for new enquiries as a background task, saved first (FR-35, FR-58, TS-04, NFR-15).

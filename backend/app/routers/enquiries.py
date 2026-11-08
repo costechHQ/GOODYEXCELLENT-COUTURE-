@@ -3,12 +3,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.rate_limit import limit_enquiries
 from app.db.session import get_session
 from app.models import Enquiry
 from app.models.enums import EnquiryType
 from app.schemas.enquiry import ConsultationIn, ContactIn, EnquiryReceived, LaundryIn, OrderIn, _FormBase
 
-router = APIRouter(prefix="/enquiries", tags=["enquiries"])
+router = APIRouter(prefix="/enquiries", tags=["enquiries"], dependencies=[Depends(limit_enquiries)])
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 
