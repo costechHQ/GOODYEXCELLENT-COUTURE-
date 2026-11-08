@@ -139,7 +139,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `LaundryIn` (FR-42): name, phone and garment types required; message optional. The garment types are one free-text field stored in `garment_type`, since the form takes a list as text (for example "Senator, kaftan").
 - Stored with type `laundry`. Same phone normalising, rejection of unknown fields and 201 `{id, message}` response as the other forms. Still no email, honeypot or rate limiting.
 - **Open question for the owner (SRS question 9):** does laundry include pick-up and delivery, and is it open to the public? This affects the page copy and perhaps an address field later.
-- **Tests:** 481 passing.
+- **Tests:** 102 passing.
 
 ### Feature 17: `POST /enquiries/order` (text fields)
 **Branch:** `feat/order-endpoint` (branched from `feat/laundry-endpoint`)
@@ -351,6 +351,21 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
   - An attacker who controls an admin's mailbox can reset that account; protect the mailboxes.
 - **Tests:** 481 passing (40 new).
 
+### Merge and push: password reset
+`feat/password-reset` was merged into `main` with `--no-ff`; 481 tests passed on `main`; `main` was pushed to GitHub (`cf67de2`, 8 commits). A scan of the pushed diff found no secrets.
+
+### Verification: everything run against real PostgreSQL 17
+**Branch:** `chore/verify-postgres` (documentation only)
+- **Why:** the 481 tests use in-memory SQLite, and four migrations had been written by hand without a database to run them on. This step closes that gap.
+- **Setup:** Docker was not available, so a portable PostgreSQL 17.11 was used: EDB's official Windows binaries zip, extracted to `C:\Users\cosim\pg-portable` (outside the repository; no installer, no admin rights, no system service). Server on `127.0.0.1:5432` only, user, password and database all `goody`, matching the project defaults. **Caveat:** the zip's executables are not code-signed and EDB publishes no checksum for it, so the download could be checked only by its HTTPS origin, its standard layout and its self-reported version. Acceptable for a throwaway local database; use the Docker setup (`docker compose up -d db`) for anything shared.
+- **Migrations:** all eight apply from an empty database. `alembic check` reports "No new upgrade operations detected", so the hand-written migrations match what the models describe. A downgrade through all four hand-written ones removed every table and all three enum types they created, and upgrading again worked, so the `DROP TYPE` lines are right.
+- **Seed:** run twice; 8 services, 1 settings row and 1 Owner (Argon2id hash) both times.
+- **Live check, 42 of 42 passed**, using the real app and the real database with no test overrides: the four public forms (honeypot saves nothing, emails queued), admin sign-in, enquiry list, filters, paging, case-insensitive search (including `%` and `_` as literal characters and a phone typed in local format), status and notes, owner CSV export, gallery create/edit/delete, service editing, testimonial approval, the five-failure lockout with real timezone-aware dates and its expiry, and the full password-reset flow including the old session being refused. No SQLite-versus-PostgreSQL differences turned up.
+- **Cleanup:** the test data was removed by recreating the `goody` database, migrating and seeding it with no Owner variables, so no test account remains. A real Owner is still to be created (see below).
+- **Not covered:** real email delivery (mail was captured, not sent), performance targets (NFR-05, NFR-29) and concurrency under load.
+- **Running it again:** start with `pg_ctl.exe -D data -l server.log -o "-c listen_addresses=127.0.0.1 -p 5432" start`, stop with `pg_ctl.exe -D data stop`, both from `C:\Users\cosim\pg-portable\pgsql\bin`. Start it detached; run in a foreground terminal it keeps the window attached. Delete the `pg-portable` folder to remove everything.
+- **To create the real Owner:** set `OWNER_EMAIL` and `OWNER_PASSWORD` (12 or more characters) for one run of `uv run python -m app.db.seed`, then remove `OWNER_PASSWORD`.
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -382,7 +397,7 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`) → admin lockout columns (`c4d8e1f95a27`) → `password_reset_tokens` and `password_changed_at` (`d5a9f3b27e61`).
 
-**Tests:** 481 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 481 passing. They use in-memory SQLite; the whole system was also verified on real PostgreSQL 17 (see Verification above).
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 
