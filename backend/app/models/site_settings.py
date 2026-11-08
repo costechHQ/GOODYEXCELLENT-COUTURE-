@@ -17,5 +17,7 @@ class SiteSettings(Base):
     email: Mapped[str] = mapped_column(String(255), default="goodnessngwuta@gmail.com")
     address: Mapped[str | None] = mapped_column(Text)
     map_link: Mapped[str | None] = mapped_column(String(500))
-    opening_hours: Mapped[dict | None] = mapped_column(JSON)
-    social_links: Mapped[dict | None] = mapped_column(JSON)
+    # none_as_null: clearing one of these stores a true SQL NULL, the same as a value that was never set.
+    # (By default SQLAlchemy would store the JSON text "null", which `IS NULL` queries do not match.)
+    opening_hours: Mapped[dict | None] = mapped_column(JSON(none_as_null=True))
+    social_links: Mapped[dict | None] = mapped_column(JSON(none_as_null=True))

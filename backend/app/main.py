@@ -8,6 +8,7 @@ from app.routers import (
     admin_enquiries,
     admin_gallery,
     admin_password_reset,
+    admin_settings,
     admin_services,
     admin_testimonials,
     admin_uploads,
@@ -41,6 +42,7 @@ app.include_router(admin.router)
 app.include_router(admin_password_reset.router)
 app.include_router(admin_gallery.router)
 app.include_router(admin_services.router)
+app.include_router(admin_settings.router)
 app.include_router(admin_enquiries.router)
 app.include_router(admin_testimonials.router)
 app.include_router(admin_uploads.router)
