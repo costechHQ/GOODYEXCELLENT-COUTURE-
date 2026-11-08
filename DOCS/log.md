@@ -366,6 +366,32 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - **Running it again:** start with `pg_ctl.exe -D data -l server.log -o "-c listen_addresses=127.0.0.1 -p 5432" start`, stop with `pg_ctl.exe -D data stop`, both from `C:\Users\cosim\pg-portable\pgsql\bin`. Start it detached; run in a foreground terminal it keeps the window attached. Delete the `pg-portable` folder to remove everything.
 - **To create the real Owner:** set `OWNER_EMAIL` and `OWNER_PASSWORD` (12 or more characters) for one run of `uv run python -m app.db.seed`, then remove `OWNER_PASSWORD`.
 
+### Merge and push: PostgreSQL verification
+`chore/verify-postgres` was merged into `main` and pushed (`3a76633`). **Commit attribution:** the owner does not want `Co-Authored-By` lines, so new commits and merges carry none. 40 of the 59 commits on GitHub `main` from before that still have the line; the owner chose to leave them rather than rewrite history and force-push.
+
+### Feature 33: Image upload pipeline (admin)
+**Branch:** `feat/image-upload` (branched from `main`)
+- **Storage chosen:** local disk behind a small interface (`app/core/storage.py`), so cloud storage can replace it later by changing that one file (TS-05). Cloud storage was the alternative; it needs an account and keys before anything can be tested.
+- `POST /admin/uploads/images` (any signed-in admin; multipart field `file`) returns `{id, url, variants, width, height}`. `url` is the largest size and is an absolute address, so it works directly as a gallery item's `image_url`. 401 without a token; nothing is written for a refused request (tested).
+- `app/core/images.py` (FR-29, NFR-04, NFR-08):
+  - **Judged by content, never by name or declared type.** The file is decoded; only real JPEG, PNG and WebP are accepted (a script named `photo.jpg` gets 415, a real photo named `holiday.txt` is accepted). SVG, GIF, BMP, TIFF, PDF and animated images are refused.
+  - **Re-encoded to WebP** at quality 82 in up to three sizes (400, 800 and 1600 pixels wide; a smaller original gets only its own width, never enlarged). Sideways phone photos are stood upright. PNG transparency is kept; CMYK is converted.
+  - **All metadata is dropped**, including GPS locations from phone photos, because the picture is redrawn from its pixels (tested with a photo carrying a GPS position and a camera name).
+  - **Limits:** 5 MB upload (`MAX_UPLOAD_BYTES`, 413 above it; at most one byte past the limit is read), 40 megapixels (422). A 30,000 x 30,000 picture that is tiny as a file is refused without being decoded. Damaged files get 422.
+  - Decoding and resizing run in a worker thread so they never stall other visitors.
+- Files are named with a random 32-character id plus the width; the visitor's file name is never used. Storage accepts only names it generated, so `../` tricks are impossible (tested with many hostile names). A save that fails halfway removes what was written.
+- `GET /media/{name}` serves the files publicly with `Cache-Control: public, max-age=31536000, immutable` and `X-Content-Type-Options: nosniff`. Anything that is not one of our generated names is 404.
+- New settings in `.env.example`: `UPLOAD_DIR` (default `uploads`, already git-ignored), `API_PUBLIC_URL` (default `http://localhost:8000`; must be the API's real public address in production) and `MAX_UPLOAD_BYTES`. **In production `UPLOAD_DIR` must be on persistent storage, or every redeploy deletes the uploads.**
+- New dependency: Pillow 13. The first install stalled on the network for over 8 minutes; stopping it and running `uv sync` again finished in about 4 minutes.
+- A bug the tests found before release: Pillow raises its decompression-bomb error when a huge file is merely *opened*, before our size check, and the code did not catch it there, so the route would have returned a server error. Fixed, with a test.
+- Two mutation checks confirmed the tests have teeth: removing the upright step fails the orientation test; carrying metadata into the output fails the GPS test.
+- **Known gaps (next slices):**
+  - Deleting a gallery item or testimonial does not yet delete its image files, so orphans accumulate.
+  - The public order form's reference images (FR-31: up to 5 files of 5 MB) are not built; that route is public, so it needs its own abuse limits.
+  - There is no cap on total disk use, and no virus scan.
+  - Testimonial and service photos can use an uploaded URL, but the admin screens for choosing one belong to the frontend.
+- **Tests:** 531 passing (50 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -394,10 +420,11 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 | `GET /admin/enquiries/export.csv` | CSV export of enquiries (Owner only) |
 | `GET`/`POST /admin/testimonials`, `PATCH`/`DELETE /admin/testimonials/{id}` | Testimonial management (admin only) |
 | `POST /admin/password-reset/request`, `/confirm` | Password reset by emailed one-time link (public, rate limited) |
+| `POST /admin/uploads/images`, `GET /media/{name}` | Image upload (admin) and public image files |
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`) → admin lockout columns (`c4d8e1f95a27`) → `password_reset_tokens` and `password_changed_at` (`d5a9f3b27e61`).
 
-**Tests:** 481 passing. They use in-memory SQLite; the whole system was also verified on real PostgreSQL 17 (see Verification above).
+**Tests:** 531 passing. They use in-memory SQLite; the whole system was also verified on real PostgreSQL 17 (see Verification above).
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 
@@ -432,4 +459,4 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** the image upload pipeline (FR-29, NFR-04, NFR-08): the last Must item. Needs decisions on where files are stored.
+**Next feature:** the public order-form reference images (FR-31), then clean-up of image files when items are deleted.
