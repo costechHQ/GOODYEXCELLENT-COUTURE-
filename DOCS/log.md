@@ -139,7 +139,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `LaundryIn` (FR-42): name, phone and garment types required; message optional. The garment types are one free-text field stored in `garment_type`, since the form takes a list as text (for example "Senator, kaftan").
 - Stored with type `laundry`. Same phone normalising, rejection of unknown fields and 201 `{id, message}` response as the other forms. Still no email, honeypot or rate limiting.
 - **Open question for the owner (SRS question 9):** does laundry include pick-up and delivery, and is it open to the public? This affects the page copy and perhaps an address field later.
-- **Tests:** 260 passing.
+- **Tests:** 286 passing.
 
 ### Feature 17: `POST /enquiries/order` (text fields)
 **Branch:** `feat/order-endpoint` (branched from `feat/laundry-endpoint`)
@@ -252,6 +252,20 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - **Not done:** bulk reorder and feature toggles in one call (the single-item `PATCH` already sets `featured` and `display_order`), upload (FR-29), and a filter for the admin list (the public list covers it for now).
 - **Tests:** 260 passing (39 new).
 
+### Merge and push: gallery admin
+`feat/gallery-admin` was merged into `main` (`--no-ff`), the 260 tests passed on `main`, and `main` was pushed to GitHub (`96a12a5`, 10 commits). A scan of the pushed diff found no secrets; only `.env.example` is tracked, with blank secret fields.
+
+### Feature 26: Services admin (list and edit)
+**Branch:** `feat/services-admin` (branched from `main`)
+- `app/routers/admin_services.py`: `GET /admin/services` (every service, **hidden ones included**, so an admin can find and unhide them) and `PATCH /admin/services/{id}`. Behind `get_current_admin`; Owner and Staff may both edit (FR-52). Anonymous and bad-token requests get 401 and change nothing (tested).
+- **Editable:** title, description, image URL, display order and visibility (FR-21). **The slug is read-only** (a `slug` field is rejected with 422) because it forms the public URL, so editing it would break links and search results.
+- `PATCH` changes only the fields sent; only `image_url` may be set to `null` (to remove the picture); the other fields reject `null`. Text is trimmed; description up to 5,000 characters.
+- **No create or delete:** the eight lines are fixed by FR-19 and FR-52 only asks for text editing. Hiding a service covers the rest (tested: POST and DELETE return 405).
+- Edits show up on the public `GET /services/{slug}`, which still exposes neither `display_order` nor `visible`. A hidden service is 404 publicly.
+- **Refactor:** the `http(s)`-only image URL rule moved into `app/schemas/common.py` (`ImageUrl`) and is shared by the gallery and services schemas. The gallery tests passed unchanged.
+- The seeded descriptions are still the placeholder "Description to be supplied." The owner's approved copy can now be entered through this endpoint (FR-21, CR-02).
+- **Tests:** 286 passing (26 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -275,10 +289,11 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 | `POST /enquiries/consultation`, `/order`, `/laundry`, `/contact` | Public forms (honeypot, rate limit, email alert) |
 | `POST /admin/login`, `GET /admin/me` | Admin sign-in (Bearer JWT) and current admin |
 | `POST /admin/gallery`, `PATCH`/`DELETE /admin/gallery/{id}` | Gallery management (admin only) |
+| `GET /admin/services`, `PATCH /admin/services/{id}` | Services text editing (admin only) |
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`) → admin lockout columns (`c4d8e1f95a27`).
 
-**Tests:** 260 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 286 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 
@@ -313,4 +328,4 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** services text editing for admins (FR-21, FR-52): `PATCH /admin/services/{id}`.
+**Next feature:** the enquiries admin API (FR-53): list with filters, search and the status workflow.
