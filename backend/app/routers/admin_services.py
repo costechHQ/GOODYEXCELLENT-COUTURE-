@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_admin
+from app.core.media_cleanup import release_image
 from app.db.session import get_session
 from app.models import Service
 from app.schemas.service import ServiceAdminOut, ServiceUpdate
@@ -26,8 +27,11 @@ async def update_service(service_id: int, data: ServiceUpdate, session: Session)
     service = await session.get(Service, service_id)
     if service is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Service not found")
+    old_url = service.image_url
     for name, value in data.model_dump(exclude_unset=True).items():
         setattr(service, name, value)
     await session.commit()
     await session.refresh(service)
+    if service.image_url != old_url:
+        await release_image(session, old_url)  # the replaced or removed picture, if nothing else uses it
     return service

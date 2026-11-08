@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_admin
+from app.core.media_cleanup import release_image
 from app.db.session import get_session
 from app.models import GalleryItem
 from app.schemas.gallery import GalleryItemAdminOut, GalleryItemCreate, GalleryItemUpdate
@@ -38,15 +39,21 @@ async def create_item(data: GalleryItemCreate, session: Session):
 @router.patch("/{item_id}", response_model=GalleryItemAdminOut)
 async def update_item(item_id: int, data: GalleryItemUpdate, session: Session):
     item = await _get_or_404(session, item_id)
+    old_url = item.image_url
     for name, value in data.model_dump(exclude_unset=True).items():
         setattr(item, name, value)
     await session.commit()
     await session.refresh(item)
+    if item.image_url != old_url:
+        await release_image(session, old_url)  # the replaced picture, if nothing else uses it
     return item
 
 
 @router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_item(item_id: int, session: Session):
-    await session.delete(await _get_or_404(session, item_id))
+    item = await _get_or_404(session, item_id)
+    old_url = item.image_url
+    await session.delete(item)
     await session.commit()
+    await release_image(session, old_url)  # only after the row is really gone
     return Response(status_code=status.HTTP_204_NO_CONTENT)
