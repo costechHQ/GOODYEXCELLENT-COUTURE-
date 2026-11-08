@@ -16,6 +16,17 @@ Fabric = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, m
 Service = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 
 
+class _FormBase(BaseModel):
+    """Common to every public form."""
+
+    # Reject unknown fields so a client can never set status, notes or type.
+    model_config = ConfigDict(extra="forbid")
+
+    # Honeypot (FR-37): hidden from people in the form, so only bots fill it in.
+    # The router silently discards a submission where it is set. It is never stored.
+    website: str | None = None
+
+
 _WAT = timezone(timedelta(hours=1))  # Nigeria time, so "today" matches the visitor's calendar
 
 
@@ -23,11 +34,8 @@ def _today_in_nigeria() -> date:
     return datetime.now(UTC).astimezone(_WAT).date()
 
 
-class _ContactDetails(BaseModel):
+class _ContactDetails(_FormBase):
     """Fields and checks shared by the consultation and order forms (FR-30, FR-31)."""
-
-    # Reject unknown fields so a client can never set status, notes or type.
-    model_config = ConfigDict(extra="forbid")
 
     name: Name
     phone: str
@@ -72,10 +80,8 @@ class OrderIn(_ContactDetails):
         return v
 
 
-class ContactIn(BaseModel):
+class ContactIn(_FormBase):
     """The general contact form (FR-47): name, phone or email, subject, message."""
-
-    model_config = ConfigDict(extra="forbid")
 
     name: Name
     phone: str | None = None
@@ -101,10 +107,8 @@ class ContactIn(BaseModel):
         return self
 
 
-class LaundryIn(BaseModel):
+class LaundryIn(_FormBase):
     """The laundry enquiry form (FR-42): name, phone, garment types, message."""
-
-    model_config = ConfigDict(extra="forbid")
 
     name: Name
     phone: str

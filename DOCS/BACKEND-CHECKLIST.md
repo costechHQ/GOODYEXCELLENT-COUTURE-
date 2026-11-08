@@ -21,7 +21,7 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 - [x] Laundry enquiry (FR-42) — Should (saved only; email, honeypot and rate limiting pending below)
 - [x] General contact message (FR-47) — Must (saved only; email, honeypot and rate limiting pending below)
 - [ ] Server-side validation incl. Nigerian and international phone formats (FR-32, FR-33, NFR-07) — Must
-- [ ] Honeypot and rate limiting (FR-37) — Must
+- [ ] Honeypot and rate limiting (FR-37) — Must (honeypot done; rate limiting pending)
 - [ ] Enquiry saved before email; email sent as background task within 1 minute (FR-35, FR-58, TS-04, NFR-15) — Must
 
 ## Admin API
