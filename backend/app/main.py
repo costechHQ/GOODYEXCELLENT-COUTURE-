@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import gallery, health, services, testimonials
+from app.routers import enquiries, gallery, health, services, testimonials
 from app.routers import settings as site_settings
 
 app = FastAPI(title=settings.app_name)
@@ -19,3 +19,4 @@ app.include_router(site_settings.router)
 app.include_router(services.router)
 app.include_router(gallery.router)
 app.include_router(testimonials.router)
+app.include_router(enquiries.router)
