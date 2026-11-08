@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from app.core.rate_limit import enquiry_limiter, reset_limiter
+from app.core.rate_limit import enquiry_limiter, login_limiter, reset_limiter
 from app.db.session import get_session
 from app.main import app
 
@@ -27,8 +27,8 @@ def use_database(sqlite_session_factory):
 @pytest.fixture(autouse=True)
 def fresh_rate_limiters():
     """Every test starts with empty limiters, so tests never count against each other."""
-    enquiry_limiter.reset()
-    reset_limiter.reset()
+    for limiter in (enquiry_limiter, reset_limiter, login_limiter):
+        limiter.reset()
     yield
-    enquiry_limiter.reset()
-    reset_limiter.reset()
+    for limiter in (enquiry_limiter, reset_limiter, login_limiter):
+        limiter.reset()

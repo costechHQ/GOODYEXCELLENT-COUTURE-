@@ -41,7 +41,7 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 - [ ] `uv run ruff check .` and `uv run pytest` pass
 - [ ] Form responses in 2 s or less under normal load (NFR-05)
 - [ ] Gallery endpoint stays fast with 500 items (NFR-29)
-- [ ] Basic security review: no critical or high issues (SRS 8.3)
+- [x] Basic security review: no critical or high issues (SRS 8.3) (see `SECURITY-REVIEW.md`; a developer review, not an independent penetration test)
 - [ ] README covers setup and deployment (NFR-27)
 
 ## Later releases (not part of this gate)
