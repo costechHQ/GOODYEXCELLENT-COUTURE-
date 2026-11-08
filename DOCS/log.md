@@ -9,6 +9,9 @@ A running record of what has been built, why, and how it was checked. The SRS (`
 - No endpoints in `app/main.py`; all routes live in `app/routers/`.
 - PostgreSQL runs locally in Docker.
 
+> **History rewrite (2026-11-08).** At the owner's request the `Co-Authored-By: Claude ...` line was removed from the 40 older commit messages and `main` was force-pushed. Nothing else changed: every commit keeps the same files, author, dates, subject and merge structure (checked commit by commit on all 27 branches). **As a result every commit id written in this log before this note is out of date**; find a change by its message (`git log --grep`) instead. The three redundant remote branches (`feat/consultation-endpoint`, `feat/laundry-endpoint`, `feat/order-endpoint`) were deleted from GitHub. Anyone who cloned before this date must re-clone or run `git fetch origin && git reset --hard origin/main` (this discards local work on `main`, so save it first). A full backup of the old history is kept outside the repository.
+> **Editor note.** The editor's Git integration publishes branches after commits. If it offers to "sync" or "pull" a branch that has diverged from GitHub, decline: pulling an older clone's history back in would restore the removed lines.
+
 ---
 
 ## Phase 0: First attempt (superseded)
