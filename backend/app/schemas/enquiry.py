@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, date, datetime, timedelta, timezone
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, field_validator, model_validator
@@ -11,11 +11,20 @@ Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max
 Message = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
 Subject = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=200)]
 Garment = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=200)]
+Occasion = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=200)]
+Fabric = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=200)]
 Service = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 
 
-class ConsultationIn(BaseModel):
-    """The consultation form (FR-30). No body measurements: those are taken in person (FR-38)."""
+_WAT = timezone(timedelta(hours=1))  # Nigeria time, so "today" matches the visitor's calendar
+
+
+def _today_in_nigeria() -> date:
+    return datetime.now(UTC).astimezone(_WAT).date()
+
+
+class _ContactDetails(BaseModel):
+    """Fields and checks shared by the consultation and order forms (FR-30, FR-31)."""
 
     # Reject unknown fields so a client can never set status, notes or type.
     model_config = ConfigDict(extra="forbid")
@@ -24,9 +33,6 @@ class ConsultationIn(BaseModel):
     phone: str
     email: EmailStr | None = None
     preferred_contact: ContactMethod
-    service: Service | None = None
-    preferred_at: datetime | None = None
-    message: Message | None = None
 
     @field_validator("phone")
     @classmethod
@@ -38,6 +44,32 @@ class ConsultationIn(BaseModel):
         if self.preferred_contact == ContactMethod.email and not self.email:
             raise ValueError("An email address is required when email is the preferred contact method")
         return self
+
+
+class ConsultationIn(_ContactDetails):
+    """The consultation form (FR-30). No body measurements: those are taken in person (FR-38)."""
+
+    service: Service | None = None
+    preferred_at: datetime | None = None
+    message: Message | None = None
+
+
+class OrderIn(_ContactDetails):
+    """The order-enquiry form (FR-31), text fields only. Reference images arrive with the upload feature."""
+
+    garment_type: Garment
+    occasion: Occasion | None = None
+    needed_by: date | None = None
+    quantity: int | None = Field(default=None, ge=1, le=500)
+    fabric_preference: Fabric | None = None
+    message: Message | None = None
+
+    @field_validator("needed_by")
+    @classmethod
+    def not_in_the_past(cls, v: date | None) -> date | None:
+        if v is not None and v < _today_in_nigeria():
+            raise ValueError("The needed-by date cannot be in the past")
+        return v
 
 
 class ContactIn(BaseModel):
