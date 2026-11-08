@@ -38,3 +38,10 @@ class EnquiryStatus(enum.StrEnum):
     in_progress = "in_progress"
     completed = "completed"
     closed = "closed"
+
+
+class AdminRole(enum.StrEnum):
+    """FR-57: Owner has full access and manages admin accounts; Staff manages content and enquiries."""
+
+    owner = "owner"
+    staff = "staff"

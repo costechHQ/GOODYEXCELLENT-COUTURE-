@@ -139,7 +139,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `LaundryIn` (FR-42): name, phone and garment types required; message optional. The garment types are one free-text field stored in `garment_type`, since the form takes a list as text (for example "Senator, kaftan").
 - Stored with type `laundry`. Same phone normalising, rejection of unknown fields and 201 `{id, message}` response as the other forms. Still no email, honeypot or rate limiting.
 - **Open question for the owner (SRS question 9):** does laundry include pick-up and delivery, and is it open to the public? This affects the page copy and perhaps an address field later.
-- **Tests:** 160 passing.
+- **Tests:** 165 passing.
 
 ### Feature 17: `POST /enquiries/order` (text fields)
 **Branch:** `feat/order-endpoint` (branched from `feat/laundry-endpoint`)
@@ -183,6 +183,19 @@ The backend was first scaffolded in large batches: all six models, every router 
 - **Not done:** the 1-minute delivery target (FR-58) can only be checked with a real server. The client auto-reply is a later release (FR-60).
 - **Tests:** 160 passing (17 new).
 
+### Merge: enquiries chain into `main`
+The eight stacked branches (`feat/enquiries-table` through `feat/email-notifications`) were merged into `main` in order with `--no-ff`, one merge commit per feature (`57695ef` to `8841e1c`). `main` was pushed to GitHub. The `main` tree matched the last branch exactly and all 160 tests passed on it. The feature branches were kept. Three of them (`consultation-endpoint`, `laundry-endpoint`, `order-endpoint`) had already appeared on GitHub without being pushed from this session; they are redundant now.
+
+### Feature 21: `admin_users` table
+**Branch:** `feat/admin-users` (branched from `main`)
+- `app/models/admin_user.py`: `email` (unique, indexed), `password_hash`, `role`, `is_active`, `created_at`. Only a hash is ever stored.
+- `AdminRole` enum: `owner` and `staff` (FR-57). **The default is `staff`** (least privilege), so nobody becomes an Owner by accident; the first Owner is created explicitly by the seed.
+- The model trims and lowercases `email` on assignment, so `Ada@X.com` and `ada@x.com` cannot become two accounts. The unique index then enforces it in the database.
+- `is_active` lets an account be deactivated instead of deleted, keeping history intact.
+- **Deliberately not here:** lockout counters and last-login time (they arrive with the sign-in and lockout feature, NFR-06) and the Argon2 library (arrives with sign-in).
+- Migration `b7e2d4a81c36`, **written by hand** (no Docker here), with `DROP TYPE adminrole` on downgrade. Checked by rendering the PostgreSQL SQL offline in both directions. **Still to do:** apply it to a real PostgreSQL and run `alembic check`. The earlier hand-written enquiries migration has the same pending check.
+- **Tests:** 165 passing (5 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -204,11 +217,11 @@ The backend was first scaffolded in large batches: all six models, every router 
 | `GET /gallery` | Portfolio, filterable and paginated |
 | `GET /testimonials` | Approved testimonials |
 
-**Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`).
+**Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`).
 
-**Tests:** 160 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 165 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
-**Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 5 of 6 done.
+**Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 
 **Commands**
 
@@ -234,11 +247,11 @@ The backend was first scaffolded in large batches: all six models, every router 
 - Order reference images (all four enquiry endpoints exist; consultation, contact, laundry and the order text fields are done)
 - Real-server check of enquiry email (code done, tested with a fake SMTP only)
 - Reference image uploads and the image pipeline (WebP re-encoding)
-- `admin_users` table; sign-in, Argon2 hashing and lockout; password reset by email
+- Sign-in, Argon2 hashing and lockout; password reset by email
 - Admin endpoints: gallery, services, testimonials, enquiries with status workflow and notes, settings
 - Seed for the first Owner account
 - Quality gates: security review, performance targets, README with setup and deployment
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** the `admin_users` table, then sign-in (Argon2, JWT, lockout).
+**Next feature:** the Owner seed (first admin account), then sign-in with Argon2 and JWT.
