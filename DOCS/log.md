@@ -139,7 +139,15 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `LaundryIn` (FR-42): name, phone and garment types required; message optional. The garment types are one free-text field stored in `garment_type`, since the form takes a list as text (for example "Senator, kaftan").
 - Stored with type `laundry`. Same phone normalising, rejection of unknown fields and 201 `{id, message}` response as the other forms. Still no email, honeypot or rate limiting.
 - **Open question for the owner (SRS question 9):** does laundry include pick-up and delivery, and is it open to the public? This affects the page copy and perhaps an address field later.
-- **Tests:** 102 passing.
+- **Tests:** 122 passing.
+
+### Feature 17: `POST /enquiries/order` (text fields)
+**Branch:** `feat/order-endpoint` (branched from `feat/laundry-endpoint`)
+- `OrderIn` (FR-31): the consultation contact fields plus garment type (required), occasion, needed-by date, quantity (1 to 500), fabric or colour preference and message (all optional). Stored with type `order`.
+- **Refactor:** the shared name, phone, email and preferred-contact fields and checks moved into a private base class `_ContactDetails`, used by both `ConsultationIn` and `OrderIn`. The existing consultation tests passed unchanged.
+- The needed-by date may be today but not in the past. "Today" is taken in Nigeria time (UTC+1), so a visitor's own calendar day is never rejected.
+- **Not done: reference images (up to 5, 5 MB each).** They arrive with the upload and image pipeline. FR-31 is therefore only partly complete, and the checklist item stays open.
+- **Tests:** 122 passing (20 new).
 
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
@@ -164,7 +172,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`).
 
-**Tests:** 102 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 122 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 5 of 6 done.
 
@@ -189,7 +197,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - Logo, photos, full address, map link, opening hours, social links, testimonials with consent
 
 **Remaining backend**
-- Order submission endpoint (consultation, contact and laundry done)
+- Order reference images (all four enquiry endpoints exist; consultation, contact, laundry and the order text fields are done)
 - Validation for Nigerian and international phone numbers; honeypot and rate limiting; email as a background task (saved first, so a mail failure never loses an enquiry)
 - Reference image uploads and the image pipeline (WebP re-encoding)
 - `admin_users` table; sign-in, Argon2 hashing and lockout; password reset by email
@@ -199,4 +207,4 @@ The backend was first scaffolded in large batches: all six models, every router 
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** `POST /enquiries/order` (FR-31 text fields; reference images later with the upload pipeline).
+**Next feature:** the enquiry safeguards, starting with the honeypot field shared by all four forms (FR-37).
