@@ -16,7 +16,7 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 - [x] Gallery list with category filter and featured flag (FR-24, FR-25, FR-09) — Must
 - [x] Testimonials: approved only (FR-12, FR-49) — Should
 - [x] Site settings read (FR-03, FR-44) — Must
-- [ ] Consultation enquiry (FR-30) — Must
+- [x] Consultation enquiry (FR-30) — Must (saved only; email, honeypot and rate limiting pending below)
 - [ ] Order enquiry: text fields done; reference image upload (up to 5, 5 MB each) pending (FR-31) — Must
 - [ ] Laundry enquiry (FR-42) — Should
 - [ ] General contact message (FR-47) — Must

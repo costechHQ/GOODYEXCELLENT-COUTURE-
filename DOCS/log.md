@@ -116,6 +116,16 @@ The backend was first scaffolded in large batches: all six models, every router 
 - Migration `a3f1c9d27b45`, **written by hand** (Docker was not installed on this machine, so no autogenerate), with `DROP TYPE` for all three enums on downgrade. Checked by rendering the PostgreSQL SQL offline in both directions (`alembic upgrade/downgrade --sql`). **Still to do:** apply it to a real PostgreSQL and run `alembic check`.
 - **Tests:** enum values match the SRS, defaults, a full order enquiry, unknown type rejected (41 passing).
 
+### Feature 14: `POST /enquiries/consultation`
+**Branch:** `feat/consultation-endpoint` (branched from `feat/enquiries-table`)
+- **Branching rule adopted:** every feature gets its own branch. The enquiries table was moved from `main` to `feat/enquiries-table` and local `main` reset to `b4df15b`. Nothing had been pushed.
+- `app/core/phone.py`: `normalise_phone` accepts Nigerian local (080...), `+234...`, `234...` and any other `+` international number (E.164), ignoring spaces, dashes, dots and brackets (FR-33). Numbers are stored in one canonical form, `+234...`.
+- `app/schemas/enquiry.py`: `ConsultationIn` (FR-30) with trimmed, length-limited text, optional validated email, and `extra="forbid"` so clients can never set `status`, `internal_notes` or `type`. Email is required when it is the preferred contact method. No body measurements (FR-38).
+- Phone is checked in a field validator so all field errors come back together, each against its own field (FR-32). The cross-field email rule only appears once the fields are valid.
+- `app/routers/enquiries.py`: returns 201 with `{id, message}`; the message promises no response time (FR-34).
+- Not yet in this endpoint: email notification, honeypot, rate limiting. Each gets its own feature.
+- **Tests:** 72 passing (31 new): phone formats, required and invalid fields, staff fields rejected, nothing saved when invalid.
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -139,7 +149,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`).
 
-**Tests:** 41 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 72 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 5 of 6 done.
 
@@ -164,7 +174,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - Logo, photos, full address, map link, opening hours, social links, testimonials with consent
 
 **Remaining backend**
-- One submission endpoint per form: consultation, order, laundry, contact
+- Submission endpoints for order, laundry and contact (consultation done)
 - Validation for Nigerian and international phone numbers; honeypot and rate limiting; email as a background task (saved first, so a mail failure never loses an enquiry)
 - Reference image uploads and the image pipeline (WebP re-encoding)
 - `admin_users` table; sign-in, Argon2 hashing and lockout; password reset by email
@@ -174,4 +184,4 @@ The backend was first scaffolded in large batches: all six models, every router 
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** `POST /enquiries/consultation` (schema, validation incl. phone formats, saved to the database; email comes later).
+**Next feature:** `POST /enquiries/contact` (general form, FR-47), reusing the phone validator.
