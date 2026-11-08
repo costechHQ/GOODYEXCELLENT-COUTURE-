@@ -22,7 +22,7 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 - [x] General contact message (FR-47) — Must (saved only; email, honeypot and rate limiting pending below)
 - [x] Server-side validation incl. Nigerian and international phone formats (FR-32, FR-33, NFR-07) — Must
 - [x] Honeypot and rate limiting (FR-37) — Must (CAPTCHA only if abuse appears; see the proxy note in the log)
-- [ ] Enquiry saved before email; email sent as background task within 1 minute (FR-35, FR-58, TS-04, NFR-15) — Must
+- [x] Enquiry saved before email; email sent as background task within 1 minute (FR-35, FR-58, TS-04, NFR-15) — Must (code and tests done; the 1-minute target still needs a check with a real mail server)
 
 ## Admin API
 - [ ] Sign-in, JWT, protected routes (FR-51) — Must
