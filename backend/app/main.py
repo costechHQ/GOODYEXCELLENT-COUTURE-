@@ -2,7 +2,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import admin, admin_enquiries, admin_gallery, admin_services, enquiries, gallery, health, services, testimonials
+from app.routers import (
+    admin,
+    admin_enquiries,
+    admin_gallery,
+    admin_services,
+    admin_testimonials,
+    enquiries,
+    gallery,
+    health,
+    services,
+    testimonials,
+)
 from app.routers import settings as site_settings
 
 app = FastAPI(title=settings.app_name)
@@ -24,3 +35,4 @@ app.include_router(admin.router)
 app.include_router(admin_gallery.router)
 app.include_router(admin_services.router)
 app.include_router(admin_enquiries.router)
+app.include_router(admin_testimonials.router)
