@@ -15,6 +15,12 @@ from app.models import Enquiry
 client = TestClient(app)
 
 
+def _post_form(form, payload):
+    """The order form is multipart (it can carry pictures); the other three forms are JSON."""
+    body = {"data": payload} if form == "order" else {"json": payload}
+    return client.post(f"/enquiries/{form}", **body)
+
+
 class FakeSMTP:
     """Stands in for smtplib.SMTP / SMTP_SSL and records what happens."""
 
@@ -171,7 +177,7 @@ async def test_new_enquiry_is_saved_and_emailed(session, mail_on):
     ],
 )
 def test_every_form_sends_an_email(session, mail_on, path, payload, kind):
-    assert client.post(f"/enquiries/{path}", json=payload).status_code == 201
+    assert _post_form(path, payload).status_code == 201
     assert f"[New {kind} enquiry]" in FakeSMTP.instances[0].sent[0]["Subject"]
 
 

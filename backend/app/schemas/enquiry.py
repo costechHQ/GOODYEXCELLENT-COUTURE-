@@ -42,6 +42,12 @@ class _ContactDetails(_FormBase):
     email: EmailStr | None = None
     preferred_contact: ContactMethod
 
+    @field_validator("email", mode="before")
+    @classmethod
+    def blank_email_means_not_provided(cls, v):
+        # A web form left empty is sent as "", which must count as missing.
+        return None if isinstance(v, str) and not v.strip() else v
+
     @field_validator("phone")
     @classmethod
     def check_phone(cls, v: str) -> str:
@@ -63,7 +69,8 @@ class ConsultationIn(_ContactDetails):
 
 
 class OrderIn(_ContactDetails):
-    """The order-enquiry form (FR-31), text fields only. Reference images arrive with the upload feature."""
+    """The order-enquiry form (FR-31). It is sent as a multipart form so up to five reference images
+    can travel with it (the files are handled by the route, not by this model)."""
 
     garment_type: Garment
     occasion: Occasion | None = None
@@ -71,6 +78,12 @@ class OrderIn(_ContactDetails):
     quantity: int | None = Field(default=None, ge=1, le=500)
     fabric_preference: Fabric | None = None
     message: Message | None = None
+
+    @field_validator("occasion", "needed_by", "quantity", "fabric_preference", "message", mode="before")
+    @classmethod
+    def blank_means_not_provided(cls, v):
+        # Form fields left empty arrive as "", which must count as missing, not as an invalid date or number.
+        return None if isinstance(v, str) and not v.strip() else v
 
     @field_validator("needed_by")
     @classmethod
@@ -148,6 +161,17 @@ class EnquirySummary(BaseModel):
     created_at: datetime
 
 
+class ReferenceImageOut(BaseModel):
+    """A picture the client attached to an order (FR-31)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    url: str  # the largest size
+    variants: dict[str, str]  # width in pixels -> address
+    width: int
+    height: int
+
+
 class EnquiryDetail(EnquirySummary):
     """The whole record, including the staff-only notes (FR-54)."""
 
@@ -159,6 +183,7 @@ class EnquiryDetail(EnquirySummary):
     quantity: int | None
     fabric_preference: str | None
     internal_notes: str | None
+    reference_images: list[ReferenceImageOut]
 
 
 class EnquiryPage(BaseModel):

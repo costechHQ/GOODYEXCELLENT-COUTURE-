@@ -9,6 +9,12 @@ from app.main import app
 client = TestClient(app)
 
 
+def _post_form(form, payload):
+    """The order form is multipart (it can carry pictures); the other three forms are JSON."""
+    body = {"data": payload} if form == "order" else {"json": payload}
+    return client.post(f"/enquiries/{form}", **body)
+
+
 class FakeClock:
     def __init__(self):
         self.now = 1000.0
@@ -103,7 +109,7 @@ def test_over_the_limit_returns_429_with_retry_after(small_limit):
 
 def test_the_count_is_shared_across_all_four_forms(small_limit):
     for form in ("consultation", "order", "laundry"):
-        assert client.post(f"/enquiries/{form}", json=FORMS[form]).status_code == 201
+        assert _post_form(form, FORMS[form]).status_code == 201
     assert client.post("/enquiries/contact", json=FORMS["contact"]).status_code == 429
 
 

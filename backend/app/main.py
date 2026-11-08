@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.core.limits import BodyLimitMiddleware
 from app.routers import (
     admin,
     admin_enquiries,
@@ -21,6 +22,8 @@ from app.routers import settings as site_settings
 
 app = FastAPI(title=settings.app_name)
 
+# Added first, so CORS (added after, and therefore outside it) still decorates its 413 answers.
+app.add_middleware(BodyLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,

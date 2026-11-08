@@ -31,18 +31,20 @@ class ProcessedImage:
     variants: dict[int, bytes]  # width in pixels -> WebP file contents
 
 
-def process_image(data: bytes) -> ProcessedImage:
+def process_image(data: bytes, max_pixels: int = MAX_PIXELS) -> ProcessedImage:
+    """`max_pixels` lets public routes be stricter than the admin area: decoding is the costly part."""
+    too_large = f"That image is too large. Use one under {max_pixels // 1_000_000} megapixels."
     try:
         image = Image.open(BytesIO(data))  # reads only the header, so the size check below is cheap
     except Image.DecompressionBombError:
         # Pillow's own guard fires at open time for absurd sizes, before our check can run.
-        raise ImageRejected("That image is too large. Use one under 40 megapixels.", 422) from None
+        raise ImageRejected(too_large, 422) from None
     except (UnidentifiedImageError, OSError, ValueError):
         raise ImageRejected("Upload a JPEG, PNG or WebP image.", 415) from None
     if image.format not in ALLOWED_FORMATS:
         raise ImageRejected("Upload a JPEG, PNG or WebP image.", 415)
-    if image.width * image.height > MAX_PIXELS:
-        raise ImageRejected("That image is too large. Use one under 40 megapixels.", 422)
+    if image.width * image.height > max_pixels:
+        raise ImageRejected(too_large, 422)
     if getattr(image, "is_animated", False):
         raise ImageRejected("Animated images are not supported.", 422)
 
