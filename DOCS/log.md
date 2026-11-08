@@ -139,7 +139,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `LaundryIn` (FR-42): name, phone and garment types required; message optional. The garment types are one free-text field stored in `garment_type`, since the form takes a list as text (for example "Senator, kaftan").
 - Stored with type `laundry`. Same phone normalising, rejection of unknown fields and 201 `{id, message}` response as the other forms. Still no email, honeypot or rate limiting.
 - **Open question for the owner (SRS question 9):** does laundry include pick-up and delivery, and is it open to the public? This affects the page copy and perhaps an address field later.
-- **Tests:** 368 passing.
+- **Tests:** 404 passing.
 
 ### Feature 17: `POST /enquiries/order` (text fields)
 **Branch:** `feat/order-endpoint` (branched from `feat/laundry-endpoint`)
@@ -303,6 +303,20 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - **Performance note:** this is a scan over a small table (an enquiry inbox, not millions of rows), fine for Release 1. If volumes ever grow, add a PostgreSQL trigram index.
 - **Tests:** 368 passing (26 new).
 
+### Merge: enquiries search into `main`
+`feat/enquiries-search` was merged into `main` with `--no-ff`; 368 tests passed on `main`. Not pushed.
+
+### Feature 30: Enquiries CSV export
+**Branch:** `feat/enquiries-export` (branched from `main`)
+- `GET /admin/enquiries/export.csv` (FR-53). **Owner only** (`require_owner`): the file exposes clients' phone numbers and emails in bulk, so Staff get 403 and see no data (tested), and anonymous requests get 401. Staff keep the ordinary list, search and detail routes. The owner can relax this to any admin if wanted.
+- **Same filters as the list** (`type`, `status`, `q`). They now live in one shared `EnquiryFilters` dependency used by both routes, so the export cannot disagree with the list; a test compares them case by case. Paging parameters are ignored: the export returns every match, newest first.
+- The file has one header row and every column, including `internal_notes`. It downloads as `enquiries-YYYY-MM-DD.csv` with `Cache-Control: no-store` (personal data must not linger in caches). It starts with a UTF-8 byte-order mark so Excel reads accented names correctly. Commas, quotes and line breaks inside messages stay in their cell (tested by reading the file back).
+- **Spreadsheet formula injection is neutralised.** A name or message beginning with `=`, `+`, `-`, `@`, a tab or a return would run as a formula in Excel or Sheets, so such cells get a leading apostrophe. Normalised phone numbers (`+234...`) are exempt, since they are safe and would otherwise look wrong.
+- **Size guard:** more than 10,000 matches returns 422 asking to narrow the filters. It refuses rather than silently cutting the file short.
+- The route is declared before `/{enquiry_id}` so `export.csv` is not read as an id (tested).
+- **Operational note:** the downloaded file is unprotected personal data under the Nigeria Data Protection Act 2023 (NFR-10); the owner should store and delete exports with care.
+- **Tests:** 404 passing (36 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -327,11 +341,12 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 | `POST /admin/login`, `GET /admin/me` | Admin sign-in (Bearer JWT) and current admin |
 | `POST /admin/gallery`, `PATCH`/`DELETE /admin/gallery/{id}` | Gallery management (admin only) |
 | `GET /admin/services`, `PATCH /admin/services/{id}` | Services text editing (admin only) |
-| `GET /admin/enquiries`, `GET`/`PATCH /admin/enquiries/{id}` | Enquiry list (filter, page), detail, and status/notes update (admin only) |
+| `GET /admin/enquiries`, `GET`/`PATCH /admin/enquiries/{id}` | Enquiry list (filter, search, page), detail, and status/notes update (admin only) |
+| `GET /admin/enquiries/export.csv` | CSV export of enquiries (Owner only) |
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`) → admin lockout columns (`c4d8e1f95a27`).
 
-**Tests:** 368 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 404 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 
@@ -366,4 +381,4 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** CSV export of enquiries (FR-53). Needs a decision first: the file holds clients' phone numbers and emails.
+**Next feature:** testimonials admin (FR-50): add, edit, hide and delete.
