@@ -139,7 +139,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `LaundryIn` (FR-42): name, phone and garment types required; message optional. The garment types are one free-text field stored in `garment_type`, since the form takes a list as text (for example "Senator, kaftan").
 - Stored with type `laundry`. Same phone normalising, rejection of unknown fields and 201 `{id, message}` response as the other forms. Still no email, honeypot or rate limiting.
 - **Open question for the owner (SRS question 9):** does laundry include pick-up and delivery, and is it open to the public? This affects the page copy and perhaps an address field later.
-- **Tests:** 404 passing.
+- **Tests:** 441 passing.
 
 ### Feature 17: `POST /enquiries/order` (text fields)
 **Branch:** `feat/order-endpoint` (branched from `feat/laundry-endpoint`)
@@ -317,6 +317,18 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - **Operational note:** the downloaded file is unprotected personal data under the Nigeria Data Protection Act 2023 (NFR-10); the owner should store and delete exports with care.
 - **Tests:** 404 passing (36 new).
 
+### Merge: enquiries export into `main`
+`feat/enquiries-export` was merged into `main` with `--no-ff`; 404 tests passed on `main`. Not pushed.
+
+### Feature 31: Testimonials admin (list, add, edit, delete)
+**Branch:** `feat/testimonials-admin` (branched from `main`)
+- `app/routers/admin_testimonials.py`: `GET /admin/testimonials` (every testimonial, **hidden ones included**, newest first like the public list), `POST` (201), `PATCH /{id}` and `DELETE /{id}` (204). Behind `get_current_admin`; Owner and Staff may both manage testimonials (FR-50). Anonymous and bad-token requests get 401 and change nothing (tested).
+- **A new testimonial is hidden by default** (`visible: false`), so nothing is published without the owner choosing to (FR-49, CR-03). It can be published at creation by sending `visible: true`, or later with `PATCH`; hiding it removes it from the public page at once. Deleting removes it from both lists.
+- Client name (2 to 120 characters) and quote (up to 2,000) are required and trimmed; the optional photo uses the shared `http(s)`-only `ImageUrl` rule, so `javascript:`, `data:` and relative paths are refused. Unknown fields (`id`, `created_at`) are rejected. `PATCH` changes only the fields sent; only `photo_url` may be nulled.
+- The public `GET /testimonials` is unchanged and still returns approved ones only (tested after admin edits).
+- **Consent is a human step.** The system cannot check that a client agreed to be quoted; the owner must have their permission before setting `visible` (CR-03). There is no consent field in the SRS data model; add one if the owner wants a record.
+- **Tests:** 441 passing (37 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -343,10 +355,11 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 | `GET /admin/services`, `PATCH /admin/services/{id}` | Services text editing (admin only) |
 | `GET /admin/enquiries`, `GET`/`PATCH /admin/enquiries/{id}` | Enquiry list (filter, search, page), detail, and status/notes update (admin only) |
 | `GET /admin/enquiries/export.csv` | CSV export of enquiries (Owner only) |
+| `GET`/`POST /admin/testimonials`, `PATCH`/`DELETE /admin/testimonials/{id}` | Testimonial management (admin only) |
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`) → admin lockout columns (`c4d8e1f95a27`).
 
-**Tests:** 404 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 441 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 
@@ -381,4 +394,4 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** testimonials admin (FR-50): add, edit, hide and delete.
+**Next feature:** password reset by email (FR-56), a Must item that reuses the mail code. Then the image upload pipeline (FR-29).

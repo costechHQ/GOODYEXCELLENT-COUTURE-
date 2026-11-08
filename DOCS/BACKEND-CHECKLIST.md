@@ -31,7 +31,7 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 - [ ] Gallery: upload, caption, categorise, reorder, feature, delete (FR-28) — Must (create, edit incl. caption, category, order and featured, and delete done with image URLs; file upload pending)
 - [ ] Upload: JPG/PNG/WebP only, size limit, re-encoded to WebP with resized variants (FR-29, NFR-04, NFR-08)
 - [x] Services text editing (FR-21, FR-52) — Must
-- [ ] Testimonials add, edit, hide, delete (FR-50) — Should
+- [x] Testimonials add, edit, hide, delete (FR-50) — Should
 - [x] Enquiries: list, search, filter, export, status workflow (FR-53) — Must (export is Owner only)
 - [x] Enquiry internal notes (FR-54) — Should
 - [ ] Site settings editing (FR-55) — Should
