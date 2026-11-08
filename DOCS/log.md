@@ -106,6 +106,16 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `GET /testimonials` returns approved ones only, newest first.
 - Fixed a pytest warning (it tries to collect imported classes named `Test…`) by referencing `models.Testimonial`.
 
+### Feature 13: `enquiries` table
+**Commit:** see git log
+- One table for all four forms (consultation, order, laundry, general), with a `type` column. Shared columns are required; type-specific ones are nullable and the API will decide what each form must supply. This keeps the admin list, search and status workflow (FR-53) simple.
+- `app/models/enquiry.py` plus three enums in `enums.py`: `EnquiryType`, `ContactMethod`, `EnquiryStatus` (new, contacted, in_progress, completed, closed). `status` defaults to `new` in both Python and the database.
+- `phone` is nullable because the contact form takes phone or email (FR-47); the endpoint will require at least one.
+- `internal_notes` and `status` are staff-only and must never appear in public responses.
+- Reference images are deliberately not here; they arrive with the upload feature.
+- Migration `a3f1c9d27b45`, **written by hand** (Docker was not installed on this machine, so no autogenerate), with `DROP TYPE` for all three enums on downgrade. Checked by rendering the PostgreSQL SQL offline in both directions (`alembic upgrade/downgrade --sql`). **Still to do:** apply it to a real PostgreSQL and run `alembic check`.
+- **Tests:** enum values match the SRS, defaults, a full order enquiry, unknown type rejected (41 passing).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -127,11 +137,11 @@ The backend was first scaffolded in large batches: all six models, every router 
 | `GET /gallery` | Portfolio, filterable and paginated |
 | `GET /testimonials` | Approved testimonials |
 
-**Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`).
+**Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`).
 
-**Tests:** 37 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 41 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
-**Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 4 of 6 done.
+**Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 5 of 6 done.
 
 **Commands**
 
@@ -154,7 +164,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - Logo, photos, full address, map link, opening hours, social links, testimonials with consent
 
 **Remaining backend**
-- `enquiries` table, then one submission endpoint per form: consultation, order, laundry, contact
+- One submission endpoint per form: consultation, order, laundry, contact
 - Validation for Nigerian and international phone numbers; honeypot and rate limiting; email as a background task (saved first, so a mail failure never loses an enquiry)
 - Reference image uploads and the image pipeline (WebP re-encoding)
 - `admin_users` table; sign-in, Argon2 hashing and lockout; password reset by email
@@ -164,4 +174,4 @@ The backend was first scaffolded in large batches: all six models, every router 
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** the `enquiries` table.
+**Next feature:** `POST /enquiries/consultation` (schema, validation incl. phone formats, saved to the database; email comes later).
