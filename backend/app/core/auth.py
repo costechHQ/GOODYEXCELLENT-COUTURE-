@@ -1,10 +1,11 @@
+from datetime import UTC
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import jwt_configured, read_access_token
+from app.core.security import jwt_configured, read_access_claims
 from app.db.session import get_session
 from app.models import AdminUser
 from app.models.enums import AdminRole
@@ -28,11 +29,23 @@ async def get_current_admin(
     so a deactivated or deleted admin loses access immediately, even with an unexpired token."""
     if credentials is None or not jwt_configured():
         raise _unauthorized()
-    admin_id = read_access_token(credentials.credentials)
-    admin = await session.get(AdminUser, admin_id) if admin_id is not None else None
+    claims = read_access_claims(credentials.credentials)
+    admin = await session.get(AdminUser, claims[0]) if claims is not None else None
     if admin is None or not admin.is_active:
         raise _unauthorized()
+    if _issued_before_password_change(admin, issued_at=claims[1]):
+        raise _unauthorized()  # a password change ends every earlier session (FR-56)
     return admin
+
+
+def _issued_before_password_change(admin: AdminUser, issued_at: int) -> bool:
+    changed = admin.password_changed_at
+    if changed is None:
+        return False
+    if changed.tzinfo is None:  # SQLite hands back naive datetimes; PostgreSQL returns aware ones
+        changed = changed.replace(tzinfo=UTC)
+    # Whole seconds, because that is the precision of a token's issue time.
+    return issued_at < int(changed.timestamp())
 
 
 async def require_owner(admin: Annotated[AdminUser, Depends(get_current_admin)]) -> AdminUser:

@@ -139,7 +139,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `LaundryIn` (FR-42): name, phone and garment types required; message optional. The garment types are one free-text field stored in `garment_type`, since the form takes a list as text (for example "Senator, kaftan").
 - Stored with type `laundry`. Same phone normalising, rejection of unknown fields and 201 `{id, message}` response as the other forms. Still no email, honeypot or rate limiting.
 - **Open question for the owner (SRS question 9):** does laundry include pick-up and delivery, and is it open to the public? This affects the page copy and perhaps an address field later.
-- **Tests:** 441 passing.
+- **Tests:** 481 passing.
 
 ### Feature 17: `POST /enquiries/order` (text fields)
 **Branch:** `feat/order-endpoint` (branched from `feat/laundry-endpoint`)
@@ -329,6 +329,28 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - **Consent is a human step.** The system cannot check that a client agreed to be quoted; the owner must have their permission before setting `visible` (CR-03). There is no consent field in the SRS data model; add one if the owner wants a record.
 - **Tests:** 441 passing (37 new).
 
+### Merge: testimonials admin into `main`
+`feat/testimonials-admin` was merged into `main` with `--no-ff`; 441 tests passed on `main`. Not pushed.
+
+### Feature 32: Password reset by email (FR-56)
+**Branch:** `feat/password-reset` (branched from `main`)
+- **Chosen:** an emailed one-time link (over an Owner-resets-Staff shortcut, which would leave the Owner unable to recover and skip FR-56).
+- `POST /admin/password-reset/request {email}` always answers `202` with the same words, whether or not the address is an admin, so it cannot be used to find out who the admins are. Only an active admin gets an email, sent as a background task after the response (like the enquiry alerts). Asking again cancels the earlier link; expired tokens are cleared out on each request.
+- `POST /admin/password-reset/confirm {token, new_password}` sets the new password (12 to 128 characters, Argon2id). Every bad link (unknown, expired, already used, deactivated account) gets the same `400`. A rejected or weak password does **not** use up the link.
+- **Token handling:** 256-bit random, shown only in the email. The database holds only its SHA-256 hash (new table `password_reset_tokens`), so a copy of the database cannot reset anyone's password. Valid for `PASSWORD_RESET_MINUTES` (30), single use. The link is claimed with a conditional `UPDATE ... WHERE used_at IS NULL`, so two simultaneous requests cannot both succeed.
+- **The link puts the token in the URL fragment** (`{FRONTEND_URL}/admin/reset-password#token=...`), which browsers never send to servers, so it stays out of access logs and Referer headers. **The frontend must read the token from `location.hash` and POST it to `/confirm`.** `FRONTEND_URL` must be set to the real site address in production.
+- **A reset ends old sessions.** New column `admin_users.password_changed_at`; `get_current_admin` refuses any token issued before it, so someone holding a stolen token loses access. Sign-in tokens now must carry an `iat` claim (they always did). A mutation check confirmed the matching test fails if this logic is removed.
+- A reset also clears any failed-login lockout (the email proves ownership of the account).
+- **Abuse limits:** both routes share a per-IP allowance of 10 attempts per 15 minutes (separate from the enquiry limit; it uses the connection address, never `X-Forwarded-For`). Over it returns 429.
+- Mail failures are logged without the address or the token; if mail is not configured the request still answers and a warning is logged. Nothing is sent to a hostile address with a newline (headers cannot be injected).
+- **Also changed:** `POST /admin/login` now rejects passwords over 1,024 characters with 422 before hashing (Argon2 is deliberately slow, so huge inputs could tie up the server). The 12-character minimum is shared with the Owner seed through `MIN_PASSWORD_LENGTH`.
+- **Migration `d5a9f3b27e61`** (new table plus the new column), **hand-written** (no Docker here); PostgreSQL SQL checked offline in both directions. **It is the fourth hand-written migration and none has yet run on a real PostgreSQL.**
+- **Known gaps:**
+  - The request route does one extra database write for a real admin, so its response time differs very slightly from an unknown address. Accepted.
+  - A signed-in admin cannot yet change their own password (there is no "change password" route). The same `password_changed_at` check will serve it.
+  - An attacker who controls an admin's mailbox can reset that account; protect the mailboxes.
+- **Tests:** 481 passing (40 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -356,10 +378,11 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 | `GET /admin/enquiries`, `GET`/`PATCH /admin/enquiries/{id}` | Enquiry list (filter, search, page), detail, and status/notes update (admin only) |
 | `GET /admin/enquiries/export.csv` | CSV export of enquiries (Owner only) |
 | `GET`/`POST /admin/testimonials`, `PATCH`/`DELETE /admin/testimonials/{id}` | Testimonial management (admin only) |
+| `POST /admin/password-reset/request`, `/confirm` | Password reset by emailed one-time link (public, rate limited) |
 
-**Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`) → admin lockout columns (`c4d8e1f95a27`).
+**Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`) → admin lockout columns (`c4d8e1f95a27`) → `password_reset_tokens` and `password_changed_at` (`d5a9f3b27e61`).
 
-**Tests:** 441 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 481 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 
@@ -387,11 +410,11 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - Order reference images (all four enquiry endpoints exist; consultation, contact, laundry and the order text fields are done)
 - Real-server check of enquiry email (code done, tested with a fake SMTP only)
 - Reference image uploads and the image pipeline (WebP re-encoding)
-- Password reset by email; password reset by email
+- Change-my-password route for signed-in admins; password reset by email
 - Admin endpoints: gallery, services, testimonials, enquiries with status workflow and notes, settings
 - Seed for the first Owner account
 - Quality gates: security review, performance targets, README with setup and deployment
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** password reset by email (FR-56), a Must item that reuses the mail code. Then the image upload pipeline (FR-29).
+**Next feature:** the image upload pipeline (FR-29, NFR-04, NFR-08): the last Must item. Needs decisions on where files are stored.

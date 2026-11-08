@@ -29,6 +29,9 @@ class AdminUser(Base):
     # Failed-login lockout (NFR-06). The counter resets on a good sign-in or when a lock starts.
     failed_login_attempts: Mapped[int] = mapped_column(Integer, default=0, server_default=text("0"))
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Sign-in tokens issued before this moment are refused, so changing a password ends any session
+    # that may already be in the wrong hands (FR-56).
+    password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     @validates("email")

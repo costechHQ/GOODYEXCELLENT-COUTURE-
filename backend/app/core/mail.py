@@ -67,6 +67,41 @@ def _send(msg: EmailMessage) -> None:
         smtp.send_message(msg)
 
 
+def smtp_configured() -> bool:
+    """Enough settings to send mail to someone other than the enquiry inbox."""
+    return bool(settings.smtp_host and (settings.mail_from or settings.enquiry_notify_to))
+
+
+def build_password_reset_message(to: str, token: str) -> EmailMessage:
+    """The reset email (FR-56). The token travels in the link's fragment (#token=...), which
+    browsers never send to servers, so it stays out of access logs and Referer headers."""
+    link = f"{settings.frontend_url.rstrip('/')}/admin/reset-password#token={token}"
+    msg = EmailMessage()
+    msg["Subject"] = "Reset your GOODYEXCELLENT COUTURE admin password"
+    msg["From"] = settings.mail_from or settings.enquiry_notify_to
+    msg["To"] = to  # EmailMessage refuses a newline here, so it cannot be used to inject headers
+    msg.set_content(
+        "Someone asked to reset the password for this admin account.\n\n"
+        f"To choose a new password, open this link within {settings.password_reset_minutes} minutes. "
+        "It works only once:\n\n"
+        f"{link}\n\n"
+        "If you did not ask for this, ignore this email. Your password has not changed."
+    )
+    return msg
+
+
+def notify_password_reset(to: str, token: str) -> None:
+    """Background task. A failure is logged without the address or the token, and never reaches
+    the visitor: the request route answers the same way whatever happens here."""
+    if not smtp_configured():
+        logger.warning("A password reset was requested but email is not configured; nothing was sent")
+        return
+    try:
+        _send(build_password_reset_message(to, token))
+    except Exception as exc:
+        logger.error("A password reset email could not be sent (%s)", type(exc).__name__)
+
+
 def notify_new_enquiry(enquiry_id: int, kind: str, fields: dict[str, Any]) -> None:
     """Background task. By now the enquiry is already saved, so a failure here must never
     surface to the visitor or lose data (NFR-15). It is logged without the visitor's details."""

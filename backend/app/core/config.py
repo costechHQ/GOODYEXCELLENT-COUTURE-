@@ -48,5 +48,10 @@ class Settings(BaseSettings):
     login_max_failures: int = 5
     login_lock_minutes: int = 15
 
+    # Password reset by email (FR-56). The emailed link points at the website, so FRONTEND_URL must
+    # be the site's real address in production (no trailing slash needed).
+    frontend_url: str = "http://localhost:3000"
+    password_reset_minutes: int = 30
+
 
 settings = Settings()

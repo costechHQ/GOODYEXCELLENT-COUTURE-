@@ -47,13 +47,28 @@ class RateLimiter:
 enquiry_limiter = RateLimiter(settings.rate_limit_max_requests, settings.rate_limit_window_seconds)
 
 
-async def limit_enquiries(request: Request) -> None:
-    """Dependency for the public forms. Uses the connection address, never a client-sent header."""
+# Password reset (FR-56): 10 attempts per IP per 15 minutes, requests and confirmations together.
+# That is plenty for a real person and stops inbox flooding or link guessing.
+reset_limiter = RateLimiter(10, 900)
+
+
+def _enforce(limiter: RateLimiter, request: Request, message: str) -> None:
+    # The connection address, never a client-sent header such as X-Forwarded-For, which anyone can forge.
     key = request.client.host if request.client else "unknown"
-    retry_after = enquiry_limiter.hit(key)
+    retry_after = limiter.hit(key)
     if retry_after is not None:
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many submissions. Please wait a few minutes and try again.",
+            detail=message,
             headers={"Retry-After": str(retry_after)},
         )
+
+
+async def limit_enquiries(request: Request) -> None:
+    """Dependency for the public forms."""
+    _enforce(enquiry_limiter, request, "Too many submissions. Please wait a few minutes and try again.")
+
+
+async def limit_password_resets(request: Request) -> None:
+    """Dependency for the password-reset routes."""
+    _enforce(reset_limiter, request, "Too many attempts. Please wait a few minutes and try again.")
