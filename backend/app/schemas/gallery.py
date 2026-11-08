@@ -1,18 +1,10 @@
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import (
-    AfterValidator,
-    AnyHttpUrl,
-    BaseModel,
-    ConfigDict,
-    Field,
-    StringConstraints,
-    TypeAdapter,
-    model_validator,
-)
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from app.models.enums import GalleryCategory
+from app.schemas.common import ImageUrl
 
 
 class GalleryItemOut(BaseModel):
@@ -28,16 +20,6 @@ class GalleryItemOut(BaseModel):
 
 # --- admin (FR-28) ----------------------------------------------------------
 
-_URL = TypeAdapter(AnyHttpUrl)
-
-
-def _check_image_url(value: str) -> str:
-    # Only absolute http(s) URLs: blocks javascript:, data: and relative paths from being stored.
-    _URL.validate_python(value)
-    return value
-
-
-ImageUrl = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500), AfterValidator(_check_image_url)]
 Caption = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=300)]
 AltText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=300)]
 
