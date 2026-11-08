@@ -38,5 +38,11 @@ class Settings(BaseSettings):
     owner_email: str = ""
     owner_password: SecretStr = SecretStr("")
 
+    # Admin sign-in tokens (FR-51). There is deliberately no default secret: until JWT_SECRET is
+    # set to at least 32 random characters, sign-in is unavailable. Generate one with:
+    #   python -c "import secrets; print(secrets.token_urlsafe(48))"
+    jwt_secret: SecretStr = SecretStr("")
+    access_token_minutes: int = 60
+
 
 settings = Settings()

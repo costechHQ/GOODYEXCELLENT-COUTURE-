@@ -25,8 +25,8 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 - [x] Enquiry saved before email; email sent as background task within 1 minute (FR-35, FR-58, TS-04, NFR-15) — Must (code and tests done; the 1-minute target still needs a check with a real mail server)
 
 ## Admin API
-- [ ] Sign-in, JWT, protected routes (FR-51) — Must
-- [ ] Argon2 hashing and failed-login lockout (NFR-06) — Must
+- [x] Sign-in, JWT, protected routes (FR-51) — Must
+- [ ] Argon2 hashing and failed-login lockout (NFR-06) — Must (Argon2 done; lockout pending)
 - [ ] Password reset by email (FR-56) — Must
 - [ ] Gallery: upload, caption, categorise, reorder, feature, delete (FR-28) — Must
 - [ ] Upload: JPG/PNG/WebP only, size limit, re-encoded to WebP with resized variants (FR-29, NFR-04, NFR-08)
