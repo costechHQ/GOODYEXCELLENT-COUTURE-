@@ -139,7 +139,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `LaundryIn` (FR-42): name, phone and garment types required; message optional. The garment types are one free-text field stored in `garment_type`, since the form takes a list as text (for example "Senator, kaftan").
 - Stored with type `laundry`. Same phone normalising, rejection of unknown fields and 201 `{id, message}` response as the other forms. Still no email, honeypot or rate limiting.
 - **Open question for the owner (SRS question 9):** does laundry include pick-up and delivery, and is it open to the public? This affects the page copy and perhaps an address field later.
-- **Tests:** 342 passing.
+- **Tests:** 368 passing.
 
 ### Feature 17: `POST /enquiries/order` (text fields)
 **Branch:** `feat/order-endpoint` (branched from `feat/laundry-endpoint`)
@@ -291,6 +291,18 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - **Not recorded:** who changed a status or note, or when. If the owner wants an audit trail (for example for disputes between staff), it needs its own table; raise it before launch.
 - **Tests:** 342 passing (35 new).
 
+### Merge and push: enquiries status and notes
+`feat/enquiries-admin-update` was merged into `main` (`--no-ff`); 342 tests passed on `main`; `main` was pushed to GitHub (`fa67a28`, 6 commits). A scan of the pushed diff found no secrets.
+
+### Feature 29: Enquiries admin, text search
+**Branch:** `feat/enquiries-search` (branched from `main`)
+- New `q` parameter on `GET /admin/enquiries` (FR-53): a case-insensitive substring match over name, email, subject, message, service and phone. Max 100 characters (422 above that). A blank or whitespace-only `q` means no search, so a frontend can send an empty box.
+- **Phone numbers:** a phone-like search also matches the stored international form, so `08031112222`, `0803 111 2222`, `+2348031112222` and `2348031112222` all find `+2348031112222`; partial digits such as `8055550000` match directly.
+- **`%` and `_` are escaped** (with `\` as the escape character), so they match themselves and never act as SQL wildcards. Searching `%` would otherwise return every row. SQL-looking text is only text (tested).
+- Search combines with `type`, `status`, paging and `total`; `total` counts search results. Still behind the admin guard; anonymous requests get 401 with no data.
+- **Performance note:** this is a scan over a small table (an enquiry inbox, not millions of rows), fine for Release 1. If volumes ever grow, add a PostgreSQL trigram index.
+- **Tests:** 368 passing (26 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -319,7 +331,7 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`) → admin lockout columns (`c4d8e1f95a27`).
 
-**Tests:** 342 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 368 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 
@@ -354,4 +366,4 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** text search on the enquiries list (a `q` parameter), then CSV export (FR-53).
+**Next feature:** CSV export of enquiries (FR-53). Needs a decision first: the file holds clients' phone numbers and emails.
