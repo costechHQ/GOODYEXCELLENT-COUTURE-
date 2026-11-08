@@ -15,5 +15,10 @@ class Settings(BaseSettings):
     # site's own domain only, as JSON: CORS_ORIGINS=["https://yourdomain.com"]
     cors_origins: list[str] = ["http://localhost:3000"]
 
+    # Rate limit on the public enquiry forms (FR-37): at most this many attempts per client IP
+    # in the window, counted across all four forms together.
+    rate_limit_max_requests: int = 10
+    rate_limit_window_seconds: int = 600
+
 
 settings = Settings()
