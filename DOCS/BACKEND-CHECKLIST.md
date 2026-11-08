@@ -32,7 +32,7 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 - [ ] Upload: JPG/PNG/WebP only, size limit, re-encoded to WebP with resized variants (FR-29, NFR-04, NFR-08)
 - [x] Services text editing (FR-21, FR-52) — Must
 - [ ] Testimonials add, edit, hide, delete (FR-50) — Should
-- [ ] Enquiries: list, search, filter, export, status workflow (FR-53) — Must (list, filter by type and status, pagination, detail and status change done; search and export pending)
+- [ ] Enquiries: list, search, filter, export, status workflow (FR-53) — Must (list, filter by type and status, pagination, detail, text search and status change done; export pending)
 - [x] Enquiry internal notes (FR-54) — Should
 - [ ] Site settings editing (FR-55) — Should
 

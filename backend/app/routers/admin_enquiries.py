@@ -1,10 +1,11 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_admin
+from app.core.phone import normalise_phone
 from app.db.session import get_session
 from app.models import Enquiry
 from app.models.enums import EnquiryStatus, EnquiryType
@@ -15,12 +16,30 @@ router = APIRouter(prefix="/admin/enquiries", tags=["admin"], dependencies=[Depe
 
 Session = Annotated[AsyncSession, Depends(get_session)]
 
+_SEARCHED_TEXT = (Enquiry.name, Enquiry.email, Enquiry.subject, Enquiry.message, Enquiry.service, Enquiry.phone)
+
+
+def _search_filter(q: str):
+    """Case-insensitive substring match. `%` and `_` are escaped so they match themselves and
+    never act as wildcards. A phone-like search also matches the stored international form,
+    so "08031112222" finds "+2348031112222"."""
+    backslash = "\\"
+    escaped = q.replace(backslash, backslash * 2).replace("%", backslash + "%").replace("_", backslash + "_")
+    pattern = f"%{escaped}%"
+    conditions = [column.ilike(pattern, escape=backslash) for column in _SEARCHED_TEXT]
+    try:
+        conditions.append(Enquiry.phone == normalise_phone(q))
+    except ValueError:
+        pass
+    return or_(*conditions)
+
 
 @router.get("", response_model=EnquiryPage)
 async def list_enquiries(
     session: Session,
     type: EnquiryType | None = None,
     status: EnquiryStatus | None = None,
+    q: Annotated[str | None, Query(max_length=100)] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
 ):
@@ -29,6 +48,8 @@ async def list_enquiries(
         filters.append(Enquiry.type == type)
     if status is not None:
         filters.append(Enquiry.status == status)
+    if q is not None and q.strip():  # a blank search box means no search
+        filters.append(_search_filter(q.strip()))
 
     total = await session.scalar(select(func.count()).select_from(Enquiry).where(*filters))
     query = (
