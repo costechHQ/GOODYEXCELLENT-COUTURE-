@@ -1,7 +1,7 @@
 from datetime import date, datetime
 
 from sqlalchemy import Date, DateTime, Enum, Integer, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models.enums import ContactMethod, EnquiryStatus, EnquiryType
@@ -40,3 +40,8 @@ class Enquiry(Base):
     )
     internal_notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Order enquiries only (FR-31). `raise` means nothing loads these by accident: code that needs
+    # them must ask for them explicitly, so the enquiry list never pays for them.
+    reference_images: Mapped[list["EnquiryImage"]] = relationship(
+        lazy="raise", order_by="EnquiryImage.id", cascade="all, delete-orphan", passive_deletes=True
+    )

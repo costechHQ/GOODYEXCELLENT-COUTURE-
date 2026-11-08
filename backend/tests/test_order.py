@@ -32,7 +32,7 @@ async def test_full_order_is_saved(session):
         "fabric_preference": "Navy blue brocade",
         "message": "Groomsmen set",
     }
-    r = client.post("/enquiries/order", json=payload)
+    r = client.post("/enquiries/order", data=payload)
 
     assert r.status_code == 201
     assert set(r.json()) == {"id", "message"}
@@ -46,20 +46,20 @@ async def test_full_order_is_saved(session):
 
 
 async def test_only_contact_fields_and_garment_are_required(session):
-    assert client.post("/enquiries/order", json=VALID).status_code == 201
+    assert client.post("/enquiries/order", data=VALID).status_code == 201
 
 
 @pytest.mark.parametrize("field", ["name", "phone", "preferred_contact", "garment_type"])
 def test_required_fields(session, field):
     payload = {k: v for k, v in VALID.items() if k != field}
-    assert client.post("/enquiries/order", json=payload).status_code == 422
+    assert client.post("/enquiries/order", data=payload).status_code == 422
 
 
 def test_today_is_accepted_but_yesterday_is_not(session):
     today = _today_in_nigeria()
-    assert client.post("/enquiries/order", json=VALID | {"needed_by": today.isoformat()}).status_code == 201
+    assert client.post("/enquiries/order", data=VALID | {"needed_by": today.isoformat()}).status_code == 201
     past = (today - timedelta(days=1)).isoformat()
-    assert client.post("/enquiries/order", json=VALID | {"needed_by": past}).status_code == 422
+    assert client.post("/enquiries/order", data=VALID | {"needed_by": past}).status_code == 422
 
 
 @pytest.mark.parametrize(
@@ -76,20 +76,20 @@ def test_today_is_accepted_but_yesterday_is_not(session):
     ],
 )
 def test_invalid_values_are_rejected(session, change):
-    assert client.post("/enquiries/order", json=VALID | change).status_code == 422
+    assert client.post("/enquiries/order", data=VALID | change).status_code == 422
 
 
 def test_email_contact_requires_an_email(session):
-    assert client.post("/enquiries/order", json=VALID | {"preferred_contact": "email"}).status_code == 422
+    assert client.post("/enquiries/order", data=VALID | {"preferred_contact": "email"}).status_code == 422
     ok = VALID | {"preferred_contact": "email", "email": "tunde@example.com"}
-    assert client.post("/enquiries/order", json=ok).status_code == 201
+    assert client.post("/enquiries/order", data=ok).status_code == 201
 
 
 @pytest.mark.parametrize("extra", [{"status": "closed"}, {"internal_notes": "x"}, {"type": "laundry"}])
 def test_clients_cannot_set_staff_fields(session, extra):
-    assert client.post("/enquiries/order", json=VALID | extra).status_code == 422
+    assert client.post("/enquiries/order", data=VALID | extra).status_code == 422
 
 
 async def test_nothing_is_saved_when_invalid(session):
-    client.post("/enquiries/order", json=VALID | {"quantity": 0})
+    client.post("/enquiries/order", data=VALID | {"quantity": 0})
     assert (await session.scalars(select(Enquiry))).all() == []

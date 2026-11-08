@@ -22,6 +22,7 @@ _LABELS = {
     "needed_by": "Needed by",
     "quantity": "Quantity",
     "fabric_preference": "Fabric or colour",
+    "reference_images": "Reference images",
     "message": "Message",
 }
 _SMTP_TIMEOUT_SECONDS = 10

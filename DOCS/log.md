@@ -392,6 +392,29 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
   - Testimonial and service photos can use an uploaded URL, but the admin screens for choosing one belong to the frontend.
 - **Tests:** 531 passing (50 new).
 
+### Merge and push: image upload
+`feat/image-upload` was merged into `main` and pushed (`4269c97`). Every commit pushed from here on is authored by the owner alone, with no `Co-Authored-By` line (checked before pushing).
+
+### Feature 34: Order reference images (FR-31)
+**Branch:** `feat/order-images` (branched from `main`)
+- **Design chosen:** one multipart request (over a two-step "upload first, then submit ids" flow). `POST /enquiries/order` is now a **multipart form**: the text fields plus up to **5** image files in a repeated field named `images`. There is no public stand-alone upload route, and abandoned forms cannot leave orphaned files. **The route no longer accepts JSON** (a JSON body gets 422); no frontend exists yet, so nothing else breaks. The frontend must send `FormData`, with the hidden honeypot field `website` left empty and any blank optional field either omitted or empty.
+- **All or nothing.** Order of work: (1) honeypot checked first, so a bot triggers no image work at all and still gets the normal-looking answer; (2) every picture is read and checked; (3) only then are the files written and the enquiry plus its picture rows saved in one transaction. A bad picture, a sixth picture, a text-field error, a storage failure or a database failure each leave **no enquiry and no files** (each tested, including a simulated disk-full halfway and a database failure after the files were written).
+- A bad picture is named in the error, for example `Reference image 2: Upload a JPEG, PNG or WebP image.` (415 not an image, 422 damaged or too many pixels, 413 over 5 MB).
+- **Stricter than the admin route, because this one is public:** pictures are capped at 16 megapixels (admin: 40), the existing per-visitor rate limit applies, and the same decoding rules apply (content judged not name, metadata and GPS stripped, re-encoded to WebP in up to three sizes; tested on a photo carrying GPS data).
+- **Request-size guard (new, `app/core/limits.py`).** FastAPI parses a multipart body *before* the route runs, so a check inside the route is too late. A small middleware now refuses an oversized `Content-Length` with 413 before anything is read. It protects the order route (5 files + allowance) and the admin upload route, and its 413 still carries the CORS headers so a browser page can read it. **Limit:** it can only judge a declared length; a client streaming with no length is stopped only by the per-file read cap, so the production reverse proxy should also set a request-size limit.
+- New table `enquiry_images` (enquiry, random image id, original size, stored widths as JSON) with `ON DELETE CASCADE`. Migration `e7b3c2a9d814`, hand-written and then **verified on real PostgreSQL** (down, up, `alembic check` clean, cascade tested). `Enquiry.reference_images` is `lazy="raise"`, so nothing loads the pictures by accident; only the detail and update routes ask for them, and the list does not pay for them.
+- The admin detail (`GET` and `PATCH /admin/enquiries/{id}`) now returns `reference_images`: `url` (largest), `variants`, `width`, `height`. The alert email gains a line `Reference images: N (see the admin area)`.
+- Two real bugs found by the tests before release: (1) a browser with no file chosen sends a file part with an empty file name, which Starlette hands over as an empty string and FastAPI rejected, so **every browser order without pictures would have failed with 422**; fixed by ignoring empty parts and still refusing real text sent in the files field. (2) The alert email silently omitted the picture count because the field had no label.
+- Form handling: blank optional fields (`""`) now count as not provided for the order form and for the shared `email` field. All previous order tests were converted from JSON to form data; several had been passing only because a JSON body gets 422, so they were converted and re-verified.
+- Mutation checks: removing the cleanup of written files, and removing the size guard, each make the matching tests fail.
+- **Real PostgreSQL:** 16 of 16 live checks passed (order with two pictures, JSON widths, files on disk, admin detail, WebP served, status update keeps pictures, bad picture saves nothing, empty-part order, foreign key and cascade, unique image id). The database was then recreated clean.
+- **Known gaps:**
+  - Files are not deleted when an enquiry is removed (no admin delete exists), nor when a gallery item or testimonial is deleted.
+  - Pictures are served from public, unguessable addresses (128-bit random names), not behind a login; that is acceptable for reference photos but not for anything confidential.
+  - The CSV export does not include picture addresses.
+  - There is no cap on total disk used by uploads (each visitor is limited by the rate limit and 25 MB per order), and no virus scan.
+- **Tests:** 565 passing (34 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -412,7 +435,8 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 | `GET /services`, `GET /services/{slug}` | Service lines |
 | `GET /gallery` | Portfolio, filterable and paginated |
 | `GET /testimonials` | Approved testimonials |
-| `POST /enquiries/consultation`, `/order`, `/laundry`, `/contact` | Public forms (honeypot, rate limit, email alert) |
+| `POST /enquiries/consultation`, `/laundry`, `/contact` | Public forms, JSON (honeypot, rate limit, email alert) |
+| `POST /enquiries/order` | Public order form, **multipart** with up to 5 reference images |
 | `POST /admin/login`, `GET /admin/me` | Admin sign-in (Bearer JWT) and current admin |
 | `POST /admin/gallery`, `PATCH`/`DELETE /admin/gallery/{id}` | Gallery management (admin only) |
 | `GET /admin/services`, `PATCH /admin/services/{id}` | Services text editing (admin only) |
@@ -422,9 +446,9 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 | `POST /admin/password-reset/request`, `/confirm` | Password reset by emailed one-time link (public, rate limited) |
 | `POST /admin/uploads/images`, `GET /media/{name}` | Image upload (admin) and public image files |
 
-**Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`) → admin lockout columns (`c4d8e1f95a27`) → `password_reset_tokens` and `password_changed_at` (`d5a9f3b27e61`).
+**Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`) → admin lockout columns (`c4d8e1f95a27`) → `password_reset_tokens` and `password_changed_at` (`d5a9f3b27e61`) → `enquiry_images` (`e7b3c2a9d814`).
 
-**Tests:** 531 passing. They use in-memory SQLite; the whole system was also verified on real PostgreSQL 17 (see Verification above).
+**Tests:** 565 passing. They use in-memory SQLite; the whole system was also verified on real PostgreSQL 17 (see Verification above).
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 
@@ -449,7 +473,6 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - Logo, photos, full address, map link, opening hours, social links, testimonials with consent
 
 **Remaining backend**
-- Order reference images (all four enquiry endpoints exist; consultation, contact, laundry and the order text fields are done)
 - Real-server check of enquiry email (code done, tested with a fake SMTP only)
 - Reference image uploads and the image pipeline (WebP re-encoding)
 - Change-my-password route for signed-in admins; password reset by email
@@ -459,4 +482,4 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** the public order-form reference images (FR-31), then clean-up of image files when items are deleted.
+**Next feature:** clean-up of image files when a gallery item or testimonial is deleted or its picture is replaced; then the quality gates (security review, performance targets, README).

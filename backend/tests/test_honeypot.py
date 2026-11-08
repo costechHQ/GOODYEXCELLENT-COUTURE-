@@ -8,6 +8,12 @@ from app.models import Enquiry
 
 client = TestClient(app)
 
+
+def _post_form(form, payload):
+    """The order form is multipart (it can carry pictures); the other three forms are JSON."""
+    body = {"data": payload} if form == "order" else {"json": payload}
+    return client.post(f"/enquiries/{form}", **body)
+
 PHONE = {"name": "Ada Obi", "phone": "08012345678"}
 FORMS = {
     "consultation": PHONE | {"preferred_contact": "call"},
@@ -27,10 +33,10 @@ async def session(use_database, sqlite_session_factory):
 
 @pytest.mark.parametrize("form", FORMS)
 async def test_filled_honeypot_looks_like_success_but_saves_nothing(session, form):
-    real = client.post(f"/enquiries/{form}", json=FORMS[form])
+    real = _post_form(form, FORMS[form])
     assert real.status_code == 201
 
-    trapped = client.post(f"/enquiries/{form}", json=FORMS[form] | {"website": "http://spam.example"})
+    trapped = _post_form(form, FORMS[form] | {"website": "http://spam.example"})
 
     assert trapped.status_code == 201
     assert set(trapped.json()) == set(real.json())  # same shape, so a bot cannot tell
@@ -40,7 +46,7 @@ async def test_filled_honeypot_looks_like_success_but_saves_nothing(session, for
 @pytest.mark.parametrize("form", FORMS)
 async def test_empty_honeypot_is_saved_normally(session, form):
     for value in ("", None):
-        assert client.post(f"/enquiries/{form}", json=FORMS[form] | {"website": value}).status_code == 201
+        assert _post_form(form, FORMS[form] | {"website": value}).status_code == 201
     assert len((await session.scalars(select(Enquiry))).all()) == 2
 
 
