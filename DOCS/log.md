@@ -139,7 +139,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `LaundryIn` (FR-42): name, phone and garment types required; message optional. The garment types are one free-text field stored in `garment_type`, since the form takes a list as text (for example "Senator, kaftan").
 - Stored with type `laundry`. Same phone normalising, rejection of unknown fields and 201 `{id, message}` response as the other forms. Still no email, honeypot or rate limiting.
 - **Open question for the owner (SRS question 9):** does laundry include pick-up and delivery, and is it open to the public? This affects the page copy and perhaps an address field later.
-- **Tests:** 177 passing.
+- **Tests:** 206 passing.
 
 ### Feature 17: `POST /enquiries/order` (text fields)
 **Branch:** `feat/order-endpoint` (branched from `feat/laundry-endpoint`)
@@ -209,6 +209,21 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - **Not yet run against real PostgreSQL** (no Docker here); verified on SQLite only.
 - **Tests:** 177 passing (12 new).
 
+### Merge: admin branches into `main`
+`feat/admin-users` and `feat/owner-seed` were merged into `main` with `--no-ff` (`87dc07d`, `51d50b0`). 177 tests passed on `main`. Not pushed: `main` is 4 commits ahead of GitHub at this point.
+
+### Feature 23: Admin sign-in (`POST /admin/login`, `GET /admin/me`)
+**Branch:** `feat/admin-login` (branched from `main`)
+- **Token delivery chosen: a Bearer token in the JSON response**, not a cookie. The frontend sends `Authorization: Bearer ...`. No CSRF risk because browsers do not attach it automatically, and the CORS config already allows the header. Added `pyjwt`.
+- `POST /admin/login` returns `{access_token, token_type: "bearer", expires_in}`. Lifetime is `ACCESS_TOKEN_MINUTES` (60).
+- The token carries only `sub` (the account id), `iat` and `exp`. **Role and active status are read from the database on every request**, so deactivating an account cuts off an unexpired token at once.
+- **One identical 401** for unknown email, wrong password and deactivated account. For an unknown email a dummy Argon2 check is still spent, so response time does not reveal which emails exist.
+- **No default secret.** `JWT_SECRET` must be at least 32 random characters; without it login returns 503 and tokens are refused. Generate one with `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+- Token reading pins HS256 and requires `exp` and `sub`; expired, tampered, wrong-secret, `alg: none` and expiry-less tokens are all refused (tested).
+- `app/core/auth.py`: `get_current_admin` (the FR-51 guard for every admin route; use the `CurrentAdmin` alias) and `require_owner` (403 for Staff, FR-57). `GET /admin/me` is the first protected route and returns id, email, role and created date, never the hash.
+- **Not done: failed-login lockout (NFR-06). Until it lands, login has no brute-force protection, so do not deploy before the next feature.** Password reset (FR-56) also still to do.
+- **Tests:** 206 passing (29 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -229,10 +244,12 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 | `GET /services`, `GET /services/{slug}` | Service lines |
 | `GET /gallery` | Portfolio, filterable and paginated |
 | `GET /testimonials` | Approved testimonials |
+| `POST /enquiries/consultation`, `/order`, `/laundry`, `/contact` | Public forms (honeypot, rate limit, email alert) |
+| `POST /admin/login`, `GET /admin/me` | Admin sign-in (Bearer JWT) and current admin |
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`).
 
-**Tests:** 177 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 206 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 
@@ -260,11 +277,11 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - Order reference images (all four enquiry endpoints exist; consultation, contact, laundry and the order text fields are done)
 - Real-server check of enquiry email (code done, tested with a fake SMTP only)
 - Reference image uploads and the image pipeline (WebP re-encoding)
-- Sign-in, Argon2 hashing and lockout; password reset by email
+- Failed-login lockout; password reset by email
 - Admin endpoints: gallery, services, testimonials, enquiries with status workflow and notes, settings
 - Seed for the first Owner account
 - Quality gates: security review, performance targets, README with setup and deployment
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** `POST /admin/login` with JWT (the lockout comes right after). Needs a JWT library and a `JWT_SECRET` setting.
+**Next feature:** failed-login lockout (NFR-06): per-account counters, a temporary lock, and the migration for them. Required before any deployment.
