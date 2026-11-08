@@ -1,3 +1,6 @@
+from typing import Literal
+
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,6 +22,16 @@ class Settings(BaseSettings):
     # in the window, counted across all four forms together.
     rate_limit_max_requests: int = 10
     rate_limit_window_seconds: int = 600
+
+    # Enquiry notification email (FR-35, IF-02). Nothing is sent until SMTP_HOST and
+    # ENQUIRY_NOTIFY_TO are both set.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_security: Literal["starttls", "ssl", "none"] = "starttls"  # 587 = starttls, 465 = ssl
+    smtp_username: str = ""
+    smtp_password: SecretStr = SecretStr("")
+    mail_from: str = ""  # defaults to the notify address; many providers require their own domain
+    enquiry_notify_to: str = ""  # the brand's enquiry inbox
 
 
 settings = Settings()

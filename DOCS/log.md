@@ -139,7 +139,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `LaundryIn` (FR-42): name, phone and garment types required; message optional. The garment types are one free-text field stored in `garment_type`, since the form takes a list as text (for example "Senator, kaftan").
 - Stored with type `laundry`. Same phone normalising, rejection of unknown fields and 201 `{id, message}` response as the other forms. Still no email, honeypot or rate limiting.
 - **Open question for the owner (SRS question 9):** does laundry include pick-up and delivery, and is it open to the public? This affects the page copy and perhaps an address field later.
-- **Tests:** 143 passing.
+- **Tests:** 160 passing.
 
 ### Feature 17: `POST /enquiries/order` (text fields)
 **Branch:** `feat/order-endpoint` (branched from `feat/laundry-endpoint`)
@@ -169,6 +169,20 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `tests/conftest.py` has an autouse fixture that empties the limiter around every test.
 - **Tests:** 143 passing (11 new).
 
+### Feature 20: Email notification for new enquiries
+**Branch:** `feat/email-notifications` (branched from `feat/rate-limiting`)
+- `app/core/mail.py`: builds a plain-text alert and sends it over SMTP using only the standard library (`smtplib`). **Chosen over a transactional email API** (Resend, SendGrid) for Release 1: no account, key or dependency. All sending sits behind `notify_new_enquiry`, so switching later means changing one function.
+- **Saved first, then emailed (FR-35, TS-04, NFR-15):** `_save()` commits the enquiry, then queues the email as a FastAPI background task. It is a plain function, so it runs in a worker thread and a slow mail server cannot block other requests.
+- **A mail failure never loses an enquiry or errors the visitor.** The error is logged with the enquiry id and the exception type only, never the visitor's name, phone or email.
+- **Off until configured:** nothing is sent unless both `SMTP_HOST` and `ENQUIRY_NOTIFY_TO` are set. Other settings: `SMTP_PORT` (587), `SMTP_SECURITY` (`starttls`, `ssl` or `none`), `SMTP_USERNAME`, `SMTP_PASSWORD` (a `SecretStr`, hidden in logs and reprs), `MAIL_FROM`. All are in `.env.example`. 10-second SMTP timeout.
+- Subject is `[New <type> enquiry] <name>`. `Reply-To` is the client's email when given, so staff reply straight from the inbox. The body lists only the fields that were filled in.
+- **Header injection:** built with `EmailMessage`, which refuses newlines in headers, and the name in the subject is flattened to one line (tested).
+- No email for honeypot hits or invalid submissions.
+- **Not yet tested against a real mail server**, only a fake SMTP class. Before launch, send a real test enquiry through the chosen provider. Many providers (Gmail, Zoho) need an app password and require `MAIL_FROM` to be an address they own.
+- **Needed from the owner (SRS 6.2, IF-02):** the enquiry inbox address and the mail account or provider to send from.
+- **Not done:** the 1-minute delivery target (FR-58) can only be checked with a real server. The client auto-reply is a later release (FR-60).
+- **Tests:** 160 passing (17 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -192,7 +206,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`).
 
-**Tests:** 143 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 160 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 5 of 6 done.
 
@@ -218,7 +232,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 
 **Remaining backend**
 - Order reference images (all four enquiry endpoints exist; consultation, contact, laundry and the order text fields are done)
-- Email notification as a background task (saved first, so a mail failure never loses an enquiry)
+- Real-server check of enquiry email (code done, tested with a fake SMTP only)
 - Reference image uploads and the image pipeline (WebP re-encoding)
 - `admin_users` table; sign-in, Argon2 hashing and lockout; password reset by email
 - Admin endpoints: gallery, services, testimonials, enquiries with status workflow and notes, settings
@@ -227,4 +241,4 @@ The backend was first scaffolded in large batches: all six models, every router 
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** email notification for new enquiries as a background task, saved first (FR-35, FR-58, TS-04, NFR-15).
+**Next feature:** the `admin_users` table, then sign-in (Argon2, JWT, lockout).
