@@ -53,5 +53,11 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3000"
     password_reset_minutes: int = 30
 
+    # Image uploads (FR-29). Files are saved in UPLOAD_DIR and served from API_PUBLIC_URL/media/.
+    # In production the folder must be on persistent storage, or uploads vanish on every redeploy.
+    upload_dir: str = "uploads"
+    api_public_url: str = "http://localhost:8000"
+    max_upload_bytes: int = 5 * 1024 * 1024
+
 
 settings = Settings()

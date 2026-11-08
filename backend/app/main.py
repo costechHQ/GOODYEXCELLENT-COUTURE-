@@ -9,9 +9,11 @@ from app.routers import (
     admin_password_reset,
     admin_services,
     admin_testimonials,
+    admin_uploads,
     enquiries,
     gallery,
     health,
+    media,
     services,
     testimonials,
 )
@@ -38,3 +40,5 @@ app.include_router(admin_gallery.router)
 app.include_router(admin_services.router)
 app.include_router(admin_enquiries.router)
 app.include_router(admin_testimonials.router)
+app.include_router(admin_uploads.router)
+app.include_router(media.router)
