@@ -33,5 +33,10 @@ class Settings(BaseSettings):
     mail_from: str = ""  # defaults to the notify address; many providers require their own domain
     enquiry_notify_to: str = ""  # the brand's enquiry inbox
 
+    # First Owner account, created by `python -m app.db.seed` only when no Owner exists yet.
+    # Set both, run the seed once, then remove OWNER_PASSWORD from the environment.
+    owner_email: str = ""
+    owner_password: SecretStr = SecretStr("")
+
 
 settings = Settings()

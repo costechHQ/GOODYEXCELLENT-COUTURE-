@@ -5,11 +5,17 @@ Run with: uv run python -m app.db.seed
 
 import asyncio
 
+from pydantic import EmailStr, TypeAdapter, ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
+from app.core.security import hash_password
 from app.db.session import SessionLocal
-from app.models import Service, SiteSettings
+from app.models import AdminUser, Service, SiteSettings
+from app.models.enums import AdminRole
+
+MIN_OWNER_PASSWORD_LENGTH = 12  # NFR-06
 
 # The eight services in FR-19, in display order.
 SERVICES = [
@@ -22,6 +28,29 @@ SERVICES = [
     ("Women's Senator Wear", "womens-senator-wear"),
     ("Fashion Consultations", "fashion-consultations"),
 ]
+
+
+async def seed_owner(session: AsyncSession) -> None:
+    """Create the first Owner from OWNER_EMAIL and OWNER_PASSWORD (FR-51, FR-57).
+
+    Does nothing if the variables are not set or an Owner already exists, so it never overwrites
+    or adds accounts. Stops with an error if the values are set but unusable.
+    """
+    email, password = settings.owner_email.strip(), settings.owner_password.get_secret_value()
+    if not email and not password:
+        return
+    if not email or not password:
+        raise SystemExit("Set both OWNER_EMAIL and OWNER_PASSWORD, or neither.")
+    try:
+        email = str(TypeAdapter(EmailStr).validate_python(email))
+    except ValidationError:
+        raise SystemExit("OWNER_EMAIL is not a valid email address.") from None
+    if len(password) < MIN_OWNER_PASSWORD_LENGTH:
+        raise SystemExit(f"OWNER_PASSWORD must be at least {MIN_OWNER_PASSWORD_LENGTH} characters.")
+
+    if await session.scalar(select(AdminUser.id).where(AdminUser.role == AdminRole.owner).limit(1)) is not None:
+        return
+    session.add(AdminUser(email=email, password_hash=hash_password(password), role=AdminRole.owner))
 
 
 async def seed(session: AsyncSession) -> None:
@@ -44,6 +73,8 @@ async def seed(session: AsyncSession) -> None:
                     display_order=order,
                 )
             )
+
+    await seed_owner(session)
 
     await session.commit()
 
