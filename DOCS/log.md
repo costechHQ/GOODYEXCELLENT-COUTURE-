@@ -139,7 +139,7 @@ The backend was first scaffolded in large batches: all six models, every router 
 - `LaundryIn` (FR-42): name, phone and garment types required; message optional. The garment types are one free-text field stored in `garment_type`, since the form takes a list as text (for example "Senator, kaftan").
 - Stored with type `laundry`. Same phone normalising, rejection of unknown fields and 201 `{id, message}` response as the other forms. Still no email, honeypot or rate limiting.
 - **Open question for the owner (SRS question 9):** does laundry include pick-up and delivery, and is it open to the public? This affects the page copy and perhaps an address field later.
-- **Tests:** 307 passing.
+- **Tests:** 342 passing.
 
 ### Feature 17: `POST /enquiries/order` (text fields)
 **Branch:** `feat/order-endpoint` (branched from `feat/laundry-endpoint`)
@@ -278,6 +278,19 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 - **Not done yet (each its own step):** text search over name, phone, email, subject and message; changing `status` and writing internal notes (`PATCH`); CSV export (FR-53).
 - **Tests:** 307 passing (21 new).
 
+### Merge: enquiries list into `main`
+`feat/enquiries-admin-list` was merged into `main` with `--no-ff`; 307 tests passed on `main`. Not pushed.
+
+### Feature 28: Enquiries admin, status and internal notes
+**Branch:** `feat/enquiries-admin-update` (branched from `main`)
+- `PATCH /admin/enquiries/{id}` (FR-53, FR-54), behind `get_current_admin`. Anonymous and bad-token requests get 401 and change nothing (tested). Returns the full detail record.
+- **Only `status` and `internal_notes` are editable.** Everything the client submitted (name, phone, email, message, type, garment details, dates) is read-only: any other field is rejected with 422 and the stored values are unchanged (tested field by field). Staff cannot alter what a client actually sent.
+- **Any status may follow any other** (New, Contacted, In Progress, Completed, Closed), because FR-53 sets no order. A Closed enquiry can be reopened. `status` cannot be null or an unknown value.
+- Notes are **replaced, not appended**; `null` clears them; blank or over 5,000 characters is rejected; text is trimmed. Sending only one of the two fields leaves the other untouched.
+- Notes never appear in any public response (tested). Enquiries cannot be created or deleted through the admin routes (405).
+- **Not recorded:** who changed a status or note, or when. If the owner wants an audit trail (for example for disputes between staff), it needs its own table; raise it before launch.
+- **Tests:** 342 passing (35 new).
+
 ### Fix: `fastapi dev`
 **Commit:** `a8bfb96`
 - `uv run fastapi dev` failed because plain `fastapi` lacks the CLI. Switched to `fastapi[standard]` and removed the now-redundant `uvicorn` dependency.
@@ -302,11 +315,11 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 | `POST /admin/login`, `GET /admin/me` | Admin sign-in (Bearer JWT) and current admin |
 | `POST /admin/gallery`, `PATCH`/`DELETE /admin/gallery/{id}` | Gallery management (admin only) |
 | `GET /admin/services`, `PATCH /admin/services/{id}` | Services text editing (admin only) |
-| `GET /admin/enquiries`, `GET /admin/enquiries/{id}` | Enquiry list (filter, page) and detail (admin only) |
+| `GET /admin/enquiries`, `GET`/`PATCH /admin/enquiries/{id}` | Enquiry list (filter, page), detail, and status/notes update (admin only) |
 
 **Tables (migration chain):** `site_settings` (`0e408dd5b05c`) → `services` (`cfbe0bbd0a63`) → `gallery_items` (`62deb755d6ec`) → `testimonials` (`ecf95f018c21`) → `enquiries` (`a3f1c9d27b45`) → `admin_users` (`b7e2d4a81c36`) → admin lockout columns (`c4d8e1f95a27`).
 
-**Tests:** 307 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
+**Tests:** 342 passing. They use in-memory SQLite. Real PostgreSQL has been checked by hand for migrations, the seed and each endpoint.
 
 **Checklist:** 9 items ticked, 25 open (see `BACKEND-CHECKLIST.md`). Models: 6 of 6 done.
 
@@ -341,4 +354,4 @@ The eight stacked branches (`feat/enquiries-table` through `feat/email-notificat
 
 **Not started:** frontend (`frontend/` is the untouched `create-next-app` output; to be moved to `bun` when we reach it).
 
-**Next feature:** `PATCH /admin/enquiries/{id}` to change status and write internal notes (FR-53, FR-54); then search and CSV export.
+**Next feature:** text search on the enquiries list (a `q` parameter), then CSV export (FR-53).

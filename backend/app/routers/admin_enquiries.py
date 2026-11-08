@@ -8,7 +8,7 @@ from app.core.auth import get_current_admin
 from app.db.session import get_session
 from app.models import Enquiry
 from app.models.enums import EnquiryStatus, EnquiryType
-from app.schemas.enquiry import EnquiryDetail, EnquiryPage
+from app.schemas.enquiry import EnquiryDetail, EnquiryPage, EnquiryUpdate
 
 # Enquiries hold clients' personal details, so every route needs a signed-in admin (FR-51, FR-53).
 router = APIRouter(prefix="/admin/enquiries", tags=["admin"], dependencies=[Depends(get_current_admin)])
@@ -47,4 +47,18 @@ async def get_enquiry(enquiry_id: int, session: Session):
     enquiry = await session.get(Enquiry, enquiry_id)
     if enquiry is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Enquiry not found")
+    return enquiry
+
+
+@router.patch("/{enquiry_id}", response_model=EnquiryDetail)
+async def update_enquiry(enquiry_id: int, data: EnquiryUpdate, session: Session):
+    """Move an enquiry through its workflow and keep staff notes. Any status may follow any other
+    (FR-53 sets no order), so a Closed enquiry can be reopened."""
+    enquiry = await session.get(Enquiry, enquiry_id)
+    if enquiry is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Enquiry not found")
+    for name, value in data.model_dump(exclude_unset=True).items():
+        setattr(enquiry, name, value)
+    await session.commit()
+    await session.refresh(enquiry)
     return enquiry
