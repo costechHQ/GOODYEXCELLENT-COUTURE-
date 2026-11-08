@@ -10,6 +10,7 @@ from app.models.enums import ContactMethod
 Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=120)]
 Message = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2000)]
 Subject = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=200)]
+Garment = Annotated[str, StringConstraints(strip_whitespace=True, min_length=2, max_length=200)]
 Service = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
 
 
@@ -66,6 +67,22 @@ class ContactIn(BaseModel):
         if not self.phone and not self.email:
             raise ValueError("Provide a phone number or an email address so we can reply")
         return self
+
+
+class LaundryIn(BaseModel):
+    """The laundry enquiry form (FR-42): name, phone, garment types, message."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: Name
+    phone: str
+    garment_type: Garment
+    message: Message | None = None
+
+    @field_validator("phone")
+    @classmethod
+    def check_phone(cls, v: str) -> str:
+        return normalise_phone(v)
 
 
 class EnquiryReceived(BaseModel):
