@@ -84,7 +84,9 @@ class SiteSettingsUpdate(BaseModel):
             return None
         for name in links:
             if not _PLATFORM.fullmatch(name):
-                raise ValueError(f"'{name}' is not a valid network name; use a short lowercase word such as 'instagram'")
+                raise ValueError(
+                    f"'{name}' is not a valid network name; use a short lowercase word such as 'instagram'"
+                )
         return links
 
     @model_validator(mode="after")

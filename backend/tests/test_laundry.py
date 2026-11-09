@@ -41,7 +41,9 @@ def test_required_fields(session, field):
     assert client.post("/enquiries/laundry", json=payload).status_code == 422
 
 
-@pytest.mark.parametrize("change", [{"phone": "12345"}, {"garment_type": " "}, {"garment_type": "x" * 201}, {"name": "A"}])
+@pytest.mark.parametrize(
+    "change", [{"phone": "12345"}, {"garment_type": " "}, {"garment_type": "x" * 201}, {"name": "A"}]
+)
 def test_invalid_values_are_rejected(session, change):
     assert client.post("/enquiries/laundry", json=VALID | change).status_code == 422
 

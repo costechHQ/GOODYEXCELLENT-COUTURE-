@@ -88,7 +88,16 @@ async def test_create_saves_the_item_and_returns_it(session, auth):
     body = r.json()
     assert body["image_url"] == URL and body["caption"] == "Groom's set"  # trimmed
     assert body["category"] == "senator" and body["featured"] is True
-    assert set(body) == {"id", "image_url", "caption", "alt_text", "category", "featured", "display_order", "created_at"}
+    assert set(body) == {
+        "id",
+        "image_url",
+        "caption",
+        "alt_text",
+        "category",
+        "featured",
+        "display_order",
+        "created_at",
+    }
     assert (await session.get(GalleryItem, body["id"])).alt_text == "Navy senator with gold trim"
 
 

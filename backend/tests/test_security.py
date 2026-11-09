@@ -97,7 +97,9 @@ async def test_only_the_owner_only_routes_refuse_staff(session, staff):
 
 
 def test_public_routes_that_change_data_are_exactly_the_four_enquiry_forms():
-    changing = {(m, p) for m, p in operations() if m in {"POST", "PUT", "PATCH", "DELETE"} and not p.startswith("/admin")}
+    changing = {
+        (m, p) for m, p in operations() if m in {"POST", "PUT", "PATCH", "DELETE"} and not p.startswith("/admin")
+    }
     assert changing == PUBLIC_CHANGING
 
 
@@ -119,7 +121,11 @@ def request_models():
     for module in pkgutil.iter_modules(schemas_package.__path__):
         mod = importlib.import_module(f"app.schemas.{module.name}")
         for name, cls in inspect.getmembers(mod, inspect.isclass):
-            if issubclass(cls, BaseModel) and cls.__module__ == mod.__name__ and name.endswith(("In", "Create", "Update")):
+            if (
+                issubclass(cls, BaseModel)
+                and cls.__module__ == mod.__name__
+                and name.endswith(("In", "Create", "Update"))
+            ):
                 found.append(cls)
     return found
 
@@ -152,7 +158,9 @@ def test_in_production_the_docs_and_schema_are_off(path):
 # --- response headers -------------------------------------------------------
 
 
-@pytest.mark.parametrize("path", ["/health", "/settings", "/does-not-exist", "/admin/me", "/media/" + "a" * 32 + "-800.webp"])
+@pytest.mark.parametrize(
+    "path", ["/health", "/settings", "/does-not-exist", "/admin/me", "/media/" + "a" * 32 + "-800.webp"]
+)
 def test_every_response_carries_the_safety_headers(session, path):
     r = client.get(path)
     assert r.headers["x-content-type-options"] == "nosniff"
@@ -162,7 +170,9 @@ def test_every_response_carries_the_safety_headers(session, path):
 
 
 def test_error_and_refusal_responses_carry_them_too(session):
-    refused_size = client.post("/enquiries/contact", content=b"x" * 1_100_000, headers={"Content-Type": "application/json"})
+    refused_size = client.post(
+        "/enquiries/contact", content=b"x" * 1_100_000, headers={"Content-Type": "application/json"}
+    )
     preflight = client.options(
         "/enquiries/contact",
         headers={"Origin": settings.cors_origins[0], "Access-Control-Request-Method": "POST"},
@@ -246,7 +256,12 @@ async def test_the_sign_in_limit_does_not_block_other_routes(session):
     for _ in range(21):
         login()
     assert client.get("/settings").status_code in (200, 404)
-    assert client.post("/enquiries/contact", json={"name": "Ada", "email": "a@example.com", "subject": "Hi", "message": "x"}).status_code == 201
+    assert (
+        client.post(
+            "/enquiries/contact", json={"name": "Ada", "email": "a@example.com", "subject": "Hi", "message": "x"}
+        ).status_code
+        == 201
+    )
 
 
 # --- request size -----------------------------------------------------------
@@ -254,7 +269,12 @@ async def test_the_sign_in_limit_does_not_block_other_routes(session):
 
 @pytest.mark.parametrize(
     ("method", "path"),
-    [("POST", "/enquiries/contact"), ("POST", "/enquiries/consultation"), ("POST", "/admin/login"), ("PATCH", "/admin/gallery/1")],
+    [
+        ("POST", "/enquiries/contact"),
+        ("POST", "/enquiries/consultation"),
+        ("POST", "/admin/login"),
+        ("PATCH", "/admin/gallery/1"),
+    ],
 )
 def test_ordinary_requests_have_a_one_megabyte_limit(session, method, path):
     r = client.request(method, path, content=b"x" * 1_100_000, headers={"Content-Type": "application/json"})

@@ -142,9 +142,7 @@ async def test_pagination_applies_after_filtering(enquiries, auth):
     assert [i["name"] for i in r["items"]] == ["Chika"] and r["total"] == 3
 
 
-@pytest.mark.parametrize(
-    "query", ["type=complaint", "status=archived", "limit=0", "limit=101", "limit=x", "offset=-1"]
-)
+@pytest.mark.parametrize("query", ["type=complaint", "status=archived", "limit=0", "limit=101", "limit=x", "offset=-1"])
 async def test_bad_parameters_are_rejected(enquiries, auth, query):
     assert client.get(f"/admin/enquiries?{query}", headers=auth).status_code == 422
 

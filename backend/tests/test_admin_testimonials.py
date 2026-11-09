@@ -167,7 +167,9 @@ async def test_the_photo_can_be_set_and_removed(session, auth):
     tid = await add(session)
     url = "https://cdn.example.com/ada.webp"
     assert client.patch(f"/admin/testimonials/{tid}", json={"photo_url": url}, headers=auth).json()["photo_url"] == url
-    assert client.patch(f"/admin/testimonials/{tid}", json={"photo_url": None}, headers=auth).json()["photo_url"] is None
+    assert (
+        client.patch(f"/admin/testimonials/{tid}", json={"photo_url": None}, headers=auth).json()["photo_url"] is None
+    )
 
 
 @pytest.mark.parametrize("field", ["client_name", "quote", "visible"])

@@ -8,7 +8,11 @@ from app.core.auth import get_current_admin
 from app.core.media_cleanup import release_image
 from app.db.session import get_session
 from app.models import GalleryItem
-from app.schemas.gallery import GalleryItemAdminOut, GalleryItemCreate, GalleryItemUpdate
+from app.schemas.gallery import (
+    GalleryItemAdminOut,
+    GalleryItemCreate,
+    GalleryItemUpdate,
+)
 
 # Owner and Staff may both manage the gallery (FR-52); everything here needs a signed-in admin (FR-51).
 router = APIRouter(prefix="/admin/gallery", tags=["admin"], dependencies=[Depends(get_current_admin)])

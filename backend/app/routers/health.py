@@ -18,6 +18,6 @@ async def health() -> dict[str, str]:
 async def health_db(session: Annotated[AsyncSession, Depends(get_session)]) -> dict[str, str]:
     try:
         await session.execute(text("SELECT 1"))
-    except Exception:
+    except Exception:  # noqa: BLE001 - any DB failure means unhealthy
         raise HTTPException(503, "Database unavailable") from None
     return {"status": "ok"}

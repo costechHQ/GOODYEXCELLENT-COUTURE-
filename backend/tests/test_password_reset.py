@@ -268,9 +268,7 @@ async def test_a_link_works_only_once(session, outbox):
 
 
 async def test_recovering_the_account_lifts_a_lockout(session, outbox):
-    admin = await add_admin(
-        session, failed_login_attempts=3, locked_until=datetime.now(UTC) + timedelta(minutes=10)
-    )
+    admin = await add_admin(session, failed_login_attempts=3, locked_until=datetime.now(UTC) + timedelta(minutes=10))
     assert login(OLD_PASSWORD).status_code == 401  # locked
     request_reset()
     confirm(token_from(outbox[0]))
@@ -317,7 +315,9 @@ async def test_a_weak_or_oversized_password_is_rejected_without_burning_the_link
     assert confirm(token).status_code == 200  # the link still works for a proper password
 
 
-@pytest.mark.parametrize("body", [{}, {"token": "abc"}, {"new_password": NEW_PASSWORD}, {"token": "", "new_password": NEW_PASSWORD}])
+@pytest.mark.parametrize(
+    "body", [{}, {"token": "abc"}, {"new_password": NEW_PASSWORD}, {"token": "", "new_password": NEW_PASSWORD}]
+)
 def test_missing_fields_are_rejected(session, body):
     assert client.post(CONFIRM, json=body).status_code == 422
 

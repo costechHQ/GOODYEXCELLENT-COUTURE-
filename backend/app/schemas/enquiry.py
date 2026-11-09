@@ -1,7 +1,15 @@
 from datetime import UTC, date, datetime, timedelta, timezone
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 from app.core.phone import normalise_phone
 from app.models.enums import ContactMethod, EnquiryStatus, EnquiryType

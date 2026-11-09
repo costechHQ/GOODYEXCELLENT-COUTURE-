@@ -1,9 +1,9 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from app import models
 from app.db.base import Base
 from app.main import app
-from app import models
 
 client = TestClient(app)
 

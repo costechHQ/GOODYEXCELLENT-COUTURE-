@@ -40,5 +40,5 @@ async def release_image(session: AsyncSession, url: str | None) -> None:
         if await _still_used(session, image_id):
             return
         await run_in_threadpool(get_storage().delete_image, image_id)
-    except Exception as exc:  # a leftover file is a nuisance; failing the request would be worse
+    except Exception as exc:  # noqa: BLE001 - a leftover file is a nuisance; failing the request would be worse
         logger.warning("Could not remove unused image files (%s)", type(exc).__name__)

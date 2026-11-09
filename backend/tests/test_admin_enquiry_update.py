@@ -128,7 +128,9 @@ async def test_status_and_notes_can_be_changed_together_or_apart(enquiry, auth):
 async def test_notes_are_staff_only_and_never_public(enquiry, auth):
     patch({"internal_notes": "Prefers calls after 5pm"}, auth)
     # The public form endpoints return only an id and a thank-you message.
-    r = client.post("/enquiries/contact", json={"name": "Zed Zed", "email": "z@example.com", "subject": "Hi", "message": "x"})
+    r = client.post(
+        "/enquiries/contact", json={"name": "Zed Zed", "email": "z@example.com", "subject": "Hi", "message": "x"}
+    )
     assert "Prefers calls" not in r.text
 
 

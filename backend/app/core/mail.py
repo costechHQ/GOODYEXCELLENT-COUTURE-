@@ -99,7 +99,7 @@ def notify_password_reset(to: str, token: str) -> None:
         return
     try:
         _send(build_password_reset_message(to, token))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - email is best-effort; never fail the request
         logger.error("A password reset email could not be sent (%s)", type(exc).__name__)
 
 
@@ -110,5 +110,5 @@ def notify_new_enquiry(enquiry_id: int, kind: str, fields: dict[str, Any]) -> No
         return
     try:
         _send(build_enquiry_message(enquiry_id, kind, fields))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - the enquiry is already saved; a mail failure must not fail it
         logger.error("Enquiry #%s saved, but the notification email failed (%s)", enquiry_id, type(exc).__name__)

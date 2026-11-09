@@ -59,13 +59,7 @@ async def confirm_reset(data: PasswordResetConfirmIn, session: Session):
         select(PasswordResetToken).where(PasswordResetToken.token_hash == hash_reset_token(data.token))
     )
     admin = await session.get(AdminUser, row.admin_id) if row is not None else None
-    if (
-        row is None
-        or row.used_at is not None
-        or _aware(row.expires_at) <= now
-        or admin is None
-        or not admin.is_active
-    ):
+    if row is None or row.used_at is not None or _aware(row.expires_at) <= now or admin is None or not admin.is_active:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=_INVALID_LINK)
 
     # Claim the link atomically: if two requests arrive together, only one changes the row.

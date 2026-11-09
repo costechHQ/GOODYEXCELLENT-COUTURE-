@@ -218,7 +218,7 @@ async def test_too_many_matches_are_refused_not_cut_short(session, owner, monkey
 
 @pytest.mark.parametrize(
     "dangerous",
-    ["=HYPERLINK(\"http://evil.example\",\"click\")", "+1+1", "-2+3", "@SUM(A1:A9)", "\t=1+1", "\r=1+1"],
+    ['=HYPERLINK("http://evil.example","click")', "+1+1", "-2+3", "@SUM(A1:A9)", "\t=1+1", "\r=1+1"],
 )
 async def test_cells_that_would_run_as_formulas_are_neutralised(session, owner, dangerous):
     add(session, dangerous, message=dangerous, internal_notes=dangerous, subject=dangerous)

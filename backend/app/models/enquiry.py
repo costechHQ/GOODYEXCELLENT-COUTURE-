@@ -1,10 +1,14 @@
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Date, DateTime, Enum, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models.enums import ContactMethod, EnquiryStatus, EnquiryType
+
+if TYPE_CHECKING:
+    from app.models.enquiry_image import EnquiryImage
 
 
 class Enquiry(Base):
