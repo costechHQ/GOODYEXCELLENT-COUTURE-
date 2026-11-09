@@ -98,19 +98,47 @@ async def main(base_url: str, n: int, concurrency: int) -> int:
             print(f"\nForm submissions (NFR-05), {n} requests each, {concurrency} at a time")
             for form, body in FORMS.items():
                 results.append(
-                    await series(client, f"POST /enquiries/{form}", 2.0, n, concurrency, "POST",
-                                 f"/enquiries/{form}", 201, json=body)
+                    await series(
+                        client,
+                        f"POST /enquiries/{form}",
+                        2.0,
+                        n,
+                        concurrency,
+                        "POST",
+                        f"/enquiries/{form}",
+                        201,
+                        json=body,
+                    )
                 )
             results.append(
-                await series(client, "POST /enquiries/order (no pictures)", 2.0, n, concurrency, "POST",
-                             "/enquiries/order", 201, data=ORDER)
+                await series(
+                    client,
+                    "POST /enquiries/order (no pictures)",
+                    2.0,
+                    n,
+                    concurrency,
+                    "POST",
+                    "/enquiries/order",
+                    201,
+                    data=ORDER,
+                )
             )
             photo = jpeg()
             print(f"\nOrder form with 5 pictures of {len(photo) / 1024:.0f} KB each (the heaviest request)")
             files = [("images", (f"p{i}.jpg", photo, "image/jpeg")) for i in range(5)]
             results.append(
-                await series(client, "POST /enquiries/order (5 pictures)", 2.0, max(5, n // 3), concurrency, "POST",
-                             "/enquiries/order", 201, data=ORDER, files=files)
+                await series(
+                    client,
+                    "POST /enquiries/order (5 pictures)",
+                    2.0,
+                    max(5, n // 3),
+                    concurrency,
+                    "POST",
+                    "/enquiries/order",
+                    201,
+                    data=ORDER,
+                    files=files,
+                )
             )
     finally:
         async with SessionLocal() as session:
