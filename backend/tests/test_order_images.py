@@ -98,7 +98,9 @@ async def test_pictures_are_saved_with_the_enquiry(session, upload_dir):
     assert [(row.width, row.height) for row in rows] == [(1200, 800), (3000, 2000)]
     assert rows[1].widths == [400, 800, 1600]
     names = files_on_disk(upload_dir)
-    assert len(names) == 3 + 3 and all(re.fullmatch(r"[0-9a-f]{32}-\d+\.webp", n) for n in names)  # 1200 gives 400, 800, 1200 too
+    assert len(names) == 3 + 3 and all(
+        re.fullmatch(r"[0-9a-f]{32}-\d+\.webp", n) for n in names
+    )  # 1200 gives 400, 800, 1200 too
     for name in names:
         assert Image.open(upload_dir / name).format == "WEBP"
 

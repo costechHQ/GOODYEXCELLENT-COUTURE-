@@ -93,7 +93,9 @@ async def create_order_enquiry(
         if part.filename or part.size:
             files.append(part)
     if len(files) > MAX_ORDER_IMAGES:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"You can attach up to {MAX_ORDER_IMAGES} images.")
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"You can attach up to {MAX_ORDER_IMAGES} images."
+        )
 
     # Check every picture before writing anything, so a bad one leaves nothing behind.
     processed = [

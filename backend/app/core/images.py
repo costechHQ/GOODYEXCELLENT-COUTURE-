@@ -61,8 +61,12 @@ def process_image(data: bytes, max_pixels: int = MAX_PIXELS) -> ProcessedImage:
     widths = sorted({w for w in VARIANT_WIDTHS if w < width} | {min(width, max(VARIANT_WIDTHS))})
     variants = {}
     for target in widths:
-        resized = image if target == width else image.resize((target, max(1, round(height * target / width))), Image.LANCZOS)
+        resized = (
+            image if target == width else image.resize((target, max(1, round(height * target / width))), Image.LANCZOS)
+        )
         out = BytesIO()
-        resized.save(out, format="WEBP", quality=WEBP_QUALITY, method=4)  # no exif or icc argument: nothing carried over
+        resized.save(
+            out, format="WEBP", quality=WEBP_QUALITY, method=4
+        )  # no exif or icc argument: nothing carried over
         variants[target] = out.getvalue()
     return ProcessedImage(width=width, height=height, variants=variants)

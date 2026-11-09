@@ -70,7 +70,9 @@ def gallery(auth, url, **extra):
 
 
 def testimonial(auth, photo_url=None):
-    r = client.post("/admin/testimonials", json={"client_name": "Ada", "quote": "Great", "photo_url": photo_url}, headers=auth)
+    r = client.post(
+        "/admin/testimonials", json={"client_name": "Ada", "quote": "Great", "photo_url": photo_url}, headers=auth
+    )
     assert r.status_code == 201
     return r.json()["id"]
 
@@ -116,7 +118,9 @@ def test_delete_image_removes_every_size_of_that_image_only(tmp_path):
 
     assert storage.delete_image(ID_A) == 3
 
-    assert sorted(p.name for p in tmp_path.iterdir()) == sorted(["notes.txt"] + [f"{ID_B}-{w}.webp" for w in (400, 800, 1600)])
+    assert sorted(p.name for p in tmp_path.iterdir()) == sorted(
+        ["notes.txt"] + [f"{ID_B}-{w}.webp" for w in (400, 800, 1600)]
+    )
 
 
 @pytest.mark.parametrize("bad", ["*", "../*", ID_A.upper(), "a" * 31, "", ID_A + "*", "[a-f]" * 6])
@@ -201,7 +205,9 @@ async def test_a_look_alike_address_on_another_host_cannot_delete_our_files(sess
     assert len(files_of(upload_dir, pic["id"])) == 3
 
 
-async def test_pointing_a_second_item_at_someone_elses_picture_does_not_expose_it_to_deletion(session, auth, upload_dir):
+async def test_pointing_a_second_item_at_someone_elses_picture_does_not_expose_it_to_deletion(
+    session, auth, upload_dir
+):
     pic = upload(auth)
     owner = gallery(auth, pic["url"])
     borrower = gallery(auth, pic["url"])
@@ -217,7 +223,12 @@ async def test_a_picture_attached_to_a_clients_order_is_protected(session, auth,
     out = BytesIO()
     Image.new("RGB", (900, 600), (200, 20, 20)).save(out, format="JPEG")
     order = {"name": "Tunde Bello", "phone": "08031112222", "preferred_contact": "call", "garment_type": "Agbada"}
-    assert client.post("/enquiries/order", data=order, files=[("images", ("r.jpg", out.getvalue(), "image/jpeg"))]).status_code == 201
+    assert (
+        client.post(
+            "/enquiries/order", data=order, files=[("images", ("r.jpg", out.getvalue(), "image/jpeg"))]
+        ).status_code
+        == 201
+    )
     reference = client.get("/admin/enquiries/1", headers=auth).json()["reference_images"][0]
     image_id = reference["url"].rsplit("/", 1)[1][:32]
     assert len(files_of(upload_dir, image_id)) == 3
@@ -232,7 +243,12 @@ async def test_a_failed_request_deletes_nothing(session, auth, upload_dir):
     pic = upload(auth)
     item = gallery(auth, pic["url"])
     assert client.patch(f"/admin/gallery/{item}", json={"image_url": "javascript:x"}, headers=auth).status_code == 422
-    assert client.patch("/admin/gallery/999", json={"image_url": "https://cdn.example.com/a.webp"}, headers=auth).status_code == 404
+    assert (
+        client.patch(
+            "/admin/gallery/999", json={"image_url": "https://cdn.example.com/a.webp"}, headers=auth
+        ).status_code
+        == 404
+    )
     assert client.delete("/admin/gallery/999", headers=auth).status_code == 404
     assert len(files_of(upload_dir, pic["id"])) == 3
 

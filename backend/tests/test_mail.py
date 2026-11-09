@@ -97,7 +97,9 @@ def test_password_is_not_shown_in_repr():
 
 
 def test_message_lists_the_filled_fields_and_replies_to_the_client(mail_on):
-    msg = mail.build_enquiry_message(7, "order", {"name": "Tunde", "email": "t@example.com", "quantity": 3, "occasion": None})
+    msg = mail.build_enquiry_message(
+        7, "order", {"name": "Tunde", "email": "t@example.com", "quantity": 3, "occasion": None}
+    )
 
     assert msg["To"] == "orders@goody.test"
     assert msg["From"] == "website@goody.test"

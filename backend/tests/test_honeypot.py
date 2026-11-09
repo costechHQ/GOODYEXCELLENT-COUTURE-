@@ -14,6 +14,7 @@ def _post_form(form, payload):
     body = {"data": payload} if form == "order" else {"json": payload}
     return client.post(f"/enquiries/{form}", **body)
 
+
 PHONE = {"name": "Ada Obi", "phone": "08012345678"}
 FORMS = {
     "consultation": PHONE | {"preferred_contact": "call"},

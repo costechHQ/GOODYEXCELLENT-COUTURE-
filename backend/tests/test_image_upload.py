@@ -190,7 +190,16 @@ def test_storage_saves_and_finds_only_names_it_generates(tmp_path):
 
 @pytest.mark.parametrize(
     "name",
-    ["../secret.webp", "..\\secret.webp", "/etc/passwd", "a.webp", GOOD.upper(), GOOD + ".exe", "0" * 32 + "-800.png", ""],
+    [
+        "../secret.webp",
+        "..\\secret.webp",
+        "/etc/passwd",
+        "a.webp",
+        GOOD.upper(),
+        GOOD + ".exe",
+        "0" * 32 + "-800.png",
+        "",
+    ],
 )
 def test_storage_refuses_unsafe_names(tmp_path, name):
     storage = LocalStorage(tmp_path / "store")
@@ -254,7 +263,9 @@ async def test_each_upload_gets_its_own_random_id(session, auth):
 
 async def test_the_uploaded_address_can_be_used_as_a_gallery_image(session, auth):
     url = send(make(), headers=auth).json()["url"]
-    r = client.post("/admin/gallery", json={"image_url": url, "alt_text": "A senator", "category": "senator"}, headers=auth)
+    r = client.post(
+        "/admin/gallery", json={"image_url": url, "alt_text": "A senator", "category": "senator"}, headers=auth
+    )
     assert r.status_code == 201 and r.json()["image_url"] == url
 
 

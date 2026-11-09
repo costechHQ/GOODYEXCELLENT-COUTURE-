@@ -56,7 +56,9 @@ def patch(body, headers):
 
 async def test_a_signed_in_admin_is_required(site):
     assert client.patch(URL, json={"email": "x@example.com"}).status_code == 401
-    assert client.patch(URL, json={"email": "x@example.com"}, headers={"Authorization": "Bearer junk"}).status_code == 401
+    assert (
+        client.patch(URL, json={"email": "x@example.com"}, headers={"Authorization": "Bearer junk"}).status_code == 401
+    )
 
 
 async def test_nothing_changes_without_a_token(site):
@@ -79,7 +81,11 @@ async def test_settings_that_were_never_seeded_give_404(session, auth):
 async def test_editing_one_field_leaves_the_seeded_contact_details_exactly_as_they_were(site, auth):
     body = patch({"address": "12 Market Road, Enugu"}, auth).json()
     assert body["address"] == "12 Market Road, Enugu"
-    assert (body["phone_numbers"], body["whatsapp_link"], body["email"]) == (SEEDED_PHONES, SEEDED_WHATSAPP, SEEDED_EMAIL)
+    assert (body["phone_numbers"], body["whatsapp_link"], body["email"]) == (
+        SEEDED_PHONES,
+        SEEDED_WHATSAPP,
+        SEEDED_EMAIL,
+    )
 
 
 async def test_an_empty_patch_changes_nothing(site, auth):
@@ -125,13 +131,27 @@ async def test_at_most_five_numbers(site, auth):
 
 
 async def test_https_links_are_accepted_and_trimmed(site, auth):
-    body = patch({"whatsapp_link": "  https://wa.me/2349024662143 ", "map_link": "https://maps.app.goo.gl/abc123"}, auth).json()
-    assert (body["whatsapp_link"], body["map_link"]) == ("https://wa.me/2349024662143", "https://maps.app.goo.gl/abc123")
+    body = patch(
+        {"whatsapp_link": "  https://wa.me/2349024662143 ", "map_link": "https://maps.app.goo.gl/abc123"}, auth
+    ).json()
+    assert (body["whatsapp_link"], body["map_link"]) == (
+        "https://wa.me/2349024662143",
+        "https://maps.app.goo.gl/abc123",
+    )
 
 
 @pytest.mark.parametrize(
     "bad",
-    ["javascript:alert(1)", "data:text/html,x", "http://wa.me/2348060036531", "wa.me/2348060036531", "/relative", "ftp://x.example/a", " ", ""],
+    [
+        "javascript:alert(1)",
+        "data:text/html,x",
+        "http://wa.me/2348060036531",
+        "wa.me/2348060036531",
+        "/relative",
+        "ftp://x.example/a",
+        " ",
+        "",
+    ],
 )
 @pytest.mark.parametrize("field", ["whatsapp_link", "map_link"])
 async def test_unsafe_or_insecure_links_are_rejected(site, auth, field, bad):
@@ -163,7 +183,11 @@ async def test_a_bad_address_is_rejected(site, auth, bad):
 async def test_opening_hours_by_day(site, auth):
     hours = {"monday": " 9:00 AM - 6:00 PM ", "saturday": "10:00 AM - 3:00 PM", "sunday": "Closed"}
     body = patch({"opening_hours": hours}, auth).json()
-    assert body["opening_hours"] == {"monday": "9:00 AM - 6:00 PM", "saturday": "10:00 AM - 3:00 PM", "sunday": "Closed"}
+    assert body["opening_hours"] == {
+        "monday": "9:00 AM - 6:00 PM",
+        "saturday": "10:00 AM - 3:00 PM",
+        "sunday": "Closed",
+    }
 
 
 async def test_opening_hours_replace_the_old_value_they_are_not_merged(site, auth):
@@ -173,7 +197,16 @@ async def test_opening_hours_replace_the_old_value_they_are_not_merged(site, aut
 
 @pytest.mark.parametrize(
     "bad",
-    [{"funday": "9 to 5"}, {"Monday": "9 to 5"}, {"monday": ""}, {"monday": "   "}, {"monday": "x" * 61}, {"monday": 9}, ["monday"], "9 to 5"],
+    [
+        {"funday": "9 to 5"},
+        {"Monday": "9 to 5"},
+        {"monday": ""},
+        {"monday": "   "},
+        {"monday": "x" * 61},
+        {"monday": 9},
+        ["monday"],
+        "9 to 5",
+    ],
 )
 async def test_bad_opening_hours_are_rejected(site, auth, bad):
     assert patch({"opening_hours": bad}, auth).status_code == 422
@@ -235,7 +268,11 @@ async def test_clearing_stores_a_true_sql_null_not_the_json_text_null(site, sess
 async def test_the_ways_to_reach_the_brand_cannot_be_cleared(site, auth, field):
     assert patch({field: None}, auth).status_code == 422
     public = client.get("/settings").json()
-    assert (public["phone_numbers"], public["whatsapp_link"], public["email"]) == (SEEDED_PHONES, SEEDED_WHATSAPP, SEEDED_EMAIL)
+    assert (public["phone_numbers"], public["whatsapp_link"], public["email"]) == (
+        SEEDED_PHONES,
+        SEEDED_WHATSAPP,
+        SEEDED_EMAIL,
+    )
 
 
 # --- unknown fields ---------------------------------------------------------
