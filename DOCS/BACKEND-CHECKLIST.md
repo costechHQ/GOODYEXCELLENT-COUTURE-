@@ -37,7 +37,7 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 - [x] Site settings editing (FR-55) — Should
 
 ## Quality gates
-- [ ] Tests cover every Must item above
+- [x] Tests cover every Must item above (see `MUST-COVERAGE.md`)
 - [ ] `uv run ruff check .` and `uv run pytest` pass
 - [x] Form responses in 2 s or less under normal load (NFR-05) — all four forms 10-110 ms; order with five 1.4 MB pictures about 1.0 s for one visitor (`scripts/timing_check.py`)
 - [x] Gallery endpoint stays fast with 500 items (NFR-29) — median 22-43 ms, slowest 0.9 s, no index needed
