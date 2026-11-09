@@ -107,4 +107,4 @@ def test_fr34_the_confirmation_thanks_the_visitor_and_promises_no_response_time(
     assert r.status_code == 201
     message = r.json()["message"]
     assert "received" in message.lower()
-    assert not re.search(r"\d|hour|minute|day|week|immediately|within|soon|asap", message, re.I)
+    assert not re.search(r"\d|hour|minute|day|week|immediately|within|soon|asap", message, re.IGNORECASE)
