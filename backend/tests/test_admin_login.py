@@ -141,7 +141,9 @@ async def test_an_unknown_email_still_spends_a_password_check(session, jwt_on, m
     assert calls == [PASSWORD]
 
 
-def test_login_is_unavailable_without_a_secret(session):
+def test_login_is_unavailable_without_a_secret(session, monkeypatch):
+    # Blank the secret explicitly: a developer's own .env may define one.
+    monkeypatch.setattr(settings, "jwt_secret", SecretStr(""))
     r = login()
     assert r.status_code == 503 and "access_token" not in r.text
 
