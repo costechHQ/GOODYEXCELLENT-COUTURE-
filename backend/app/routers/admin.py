@@ -8,7 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import CurrentAdmin
 from app.core.config import settings
 from app.core.rate_limit import limit_logins
-from app.core.security import burn_password_check, create_access_token, jwt_configured, verify_password
+from app.core.security import (
+    burn_password_check,
+    create_access_token,
+    jwt_configured,
+    verify_password,
+)
 from app.db.session import get_session
 from app.models import AdminUser
 from app.schemas.admin import AdminOut, LoginIn, TokenOut

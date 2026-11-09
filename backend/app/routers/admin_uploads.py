@@ -4,7 +4,12 @@ from pydantic import BaseModel
 from app.core.auth import get_current_admin
 from app.core.config import settings
 from app.core.storage import public_url
-from app.core.uploads import MULTIPART_OVERHEAD, read_and_process, store, too_large_message
+from app.core.uploads import (
+    MULTIPART_OVERHEAD,
+    read_and_process,
+    store,
+    too_large_message,
+)
 
 # Any signed-in admin may upload (FR-28, FR-51).
 router = APIRouter(prefix="/admin/uploads", tags=["admin"], dependencies=[Depends(get_current_admin)])

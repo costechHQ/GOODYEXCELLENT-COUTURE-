@@ -8,7 +8,11 @@ from app.core.auth import get_current_admin
 from app.core.media_cleanup import release_image
 from app.db.session import get_session
 from app.models import Testimonial
-from app.schemas.testimonial import TestimonialAdminOut, TestimonialCreate, TestimonialUpdate
+from app.schemas.testimonial import (
+    TestimonialAdminOut,
+    TestimonialCreate,
+    TestimonialUpdate,
+)
 
 # Owner and Staff may both manage testimonials (FR-50); everything here needs a signed-in admin (FR-51).
 router = APIRouter(prefix="/admin/testimonials", tags=["admin"], dependencies=[Depends(get_current_admin)])

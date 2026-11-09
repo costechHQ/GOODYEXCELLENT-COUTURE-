@@ -1,15 +1,37 @@
 from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    Form,
+    HTTPException,
+    UploadFile,
+    status,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.mail import notify_new_enquiry
 from app.core.rate_limit import limit_enquiries
-from app.core.uploads import MAX_ORDER_IMAGES, ORDER_IMAGE_MAX_PIXELS, StoredImage, discard, read_and_process, store
+from app.core.uploads import (
+    MAX_ORDER_IMAGES,
+    ORDER_IMAGE_MAX_PIXELS,
+    StoredImage,
+    discard,
+    read_and_process,
+    store,
+)
 from app.db.session import get_session
 from app.models import Enquiry, EnquiryImage
 from app.models.enums import EnquiryType
-from app.schemas.enquiry import ConsultationIn, ContactIn, EnquiryReceived, LaundryIn, OrderIn, _FormBase
+from app.schemas.enquiry import (
+    ConsultationIn,
+    ContactIn,
+    EnquiryReceived,
+    LaundryIn,
+    OrderIn,
+    _FormBase,
+)
 
 router = APIRouter(prefix="/enquiries", tags=["enquiries"], dependencies=[Depends(limit_enquiries)])
 

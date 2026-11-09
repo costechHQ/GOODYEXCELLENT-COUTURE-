@@ -1,5 +1,6 @@
 import logging
 import smtplib
+from typing import ClassVar
 
 import pytest
 from fastapi.testclient import TestClient
@@ -24,7 +25,7 @@ def _post_form(form, payload):
 class FakeSMTP:
     """Stands in for smtplib.SMTP / SMTP_SSL and records what happens."""
 
-    instances: list["FakeSMTP"] = []
+    instances: ClassVar[list["FakeSMTP"]] = []
     fail_on_send = False
 
     def __init__(self, host, port, **kwargs):
