@@ -1,3 +1,4 @@
+import asyncio
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, UploadFile, status
@@ -74,10 +75,19 @@ async def create_order_enquiry(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"You can attach up to {MAX_ORDER_IMAGES} images.")
 
     # Check every picture before writing anything, so a bad one leaves nothing behind.
-    processed = [
-        await read_and_process(f, max_pixels=ORDER_IMAGE_MAX_PIXELS, label=f"Reference image {number}")
-        for number, f in enumerate(files, start=1)
-    ]
+    # The pictures are processed at the same time (each runs in its own thread) so five photos do not take
+    # five times as long (NFR-05). If several are bad, the first one in order is reported, as before.
+    outcomes = await asyncio.gather(
+        *(
+            read_and_process(f, max_pixels=ORDER_IMAGE_MAX_PIXELS, label=f"Reference image {number}")
+            for number, f in enumerate(files, start=1)
+        ),
+        return_exceptions=True,
+    )
+    for outcome in outcomes:
+        if isinstance(outcome, BaseException):
+            raise outcome
+    processed = list(outcomes)
 
     stored: list[StoredImage] = []
     try:

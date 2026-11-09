@@ -39,8 +39,8 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 ## Quality gates
 - [ ] Tests cover every Must item above
 - [ ] `uv run ruff check .` and `uv run pytest` pass
-- [ ] Form responses in 2 s or less under normal load (NFR-05)
-- [ ] Gallery endpoint stays fast with 500 items (NFR-29)
+- [x] Form responses in 2 s or less under normal load (NFR-05) — all four forms 10-110 ms; order with five 1.4 MB pictures about 1.0 s for one visitor (`scripts/timing_check.py`)
+- [x] Gallery endpoint stays fast with 500 items (NFR-29) — median 22-43 ms, slowest 0.9 s, no index needed
 - [x] Basic security review: no critical or high issues (SRS 8.3) (see `SECURITY-REVIEW.md`; a developer review, not an independent penetration test)
 - [ ] README covers setup and deployment (NFR-27)
 
