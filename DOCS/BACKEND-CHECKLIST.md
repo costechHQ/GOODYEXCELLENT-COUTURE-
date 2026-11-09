@@ -37,7 +37,7 @@ Derived from `SRS — GOODYEXCELLENT COUTURE Website.md`, which stays the source
 - [x] Site settings editing (FR-55) — Should
 
 ## Quality gates
-- [ ] Tests cover every Must item above
+- [x] Tests cover every Must item above (see `MUST-COVERAGE.md`)
 - [ ] `uv run ruff check .` and `uv run pytest` pass
 - [ ] Form responses in 2 s or less under normal load (NFR-05)
 - [ ] Gallery endpoint stays fast with 500 items (NFR-29)
